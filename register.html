@@ -269,7 +269,7 @@
         <button class="btn-action btn-guest" onclick="processGuestEntry()">PLAY INSTANTLY ($20)</button>
       </div>
 
-      <div class="divider"><span>OR CONTINUE WITH GAMER ACCOUNTS</span></div>
+      <div class="divider"><span>OR SIGN IN WITH GAMER ACCOUNTS</span></div>
 
       <!-- Social Account Buttons -->
       <div class="social-grid">
@@ -376,18 +376,24 @@
     </div>
   </div>
 
-  <!-- SOCIAL ACCOUNT CONNECT MODAL -->
+  <!-- STRICT SOCIAL ACCOUNT AUTHENTICATION MODAL -->
   <div id="socialModal" class="modal-overlay">
     <div class="modal-box">
-      <div class="modal-title" id="socialModalTitle">ACCOUNT CONNECT</div>
-      <div style="font-size:11px; color:#8a9bb8;" id="socialModalSub">Verify your gamer account handle to continue to CyberNova Casino.</div>
+      <div class="modal-title" id="socialModalTitle">ACCOUNT VERIFICATION</div>
+      <div style="font-size:11px; color:#8a9bb8;" id="socialModalSub">Enter your account credentials to verify ownership and sign in.</div>
+
+      <div class="error-alert" id="socialError"></div>
 
       <div class="input-group">
-        <label class="input-label" id="socialFieldLabel">Account Handle / Email</label>
-        <input type="text" id="socialHandleInput" class="input-field" placeholder="Enter account handle...">
+        <label class="input-label" id="socialFieldLabel">Account Username / Email</label>
+        <input type="text" id="socialHandleInput" class="input-field" placeholder="Enter handle or email...">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Account Password</label>
+        <input type="password" id="socialPasswordInput" class="input-field" placeholder="Enter password to verify...">
       </div>
 
-      <button class="btn-action btn-gold" style="margin-top:6px;" onclick="confirmSocialAuth()">VERIFY & START ($50 BONUS)</button>
+      <button class="btn-action btn-gold" style="margin-top:6px;" onclick="confirmSocialAuth()">VERIFY & SIGN IN</button>
       <button class="btn-action btn-guest" onclick="closeSocialModal()">CANCEL</button>
     </div>
   </div>
@@ -438,7 +444,7 @@
         let db = JSON.parse(localStorage.getItem('cybernova_accounts_db'));
         if (!db || typeof db !== 'object') db = {};
 
-        // Auto-seed default accounts if missing
+        // Auto-seed default accounts
         if (!db['romeoog']) {
           db['romeoog'] = { username: 'RomeoOG', email: 'romeogfc@gmail.com', password: '123', balance: 50.00 };
           db['romeogfc@gmail.com'] = db['romeoog'];
@@ -591,13 +597,15 @@
       saveAndOpenLobby();
     }
 
-    /* IN-PORTAL SOCIAL ACCOUNT VERIFICATION */
+    /* STRICT SOCIAL ACCOUNT VERIFICATION (REQUIRES PASSWORD) */
     function openSocialModal(provider, defaultHandle) {
       currentProvider = provider;
-      document.getElementById('socialModalTitle').innerText = `${provider.toUpperCase()} CONNECT`;
-      document.getElementById('socialModalSub').innerText = `Confirm your ${provider} gamer handle to verify and claim your $50 bankroll.`;
-      document.getElementById('socialFieldLabel').innerText = `${provider} Display Name / Email`;
+      document.getElementById('socialError').style.display = 'none';
+      document.getElementById('socialModalTitle').innerText = `${provider.toUpperCase()} VERIFICATION`;
+      document.getElementById('socialModalSub').innerText = `Enter password for ${defaultHandle} to verify account ownership.`;
+      document.getElementById('socialFieldLabel').innerText = `${provider} Username / Email`;
       document.getElementById('socialHandleInput').value = defaultHandle;
+      document.getElementById('socialPasswordInput').value = '';
       document.getElementById('socialModal').style.display = 'flex';
     }
 
@@ -607,13 +615,49 @@
 
     function confirmSocialAuth() {
       const handle = document.getElementById('socialHandleInput').value.trim();
-      if (!handle) {
-        alert("Please enter a valid handle or email.");
+      const password = document.getElementById('socialPasswordInput').value.trim();
+      const errEl = document.getElementById('socialError');
+
+      if (!handle || !password) {
+        errEl.innerText = "Password required! Please enter your password to authenticate.";
+        errEl.style.display = 'block';
         return;
       }
 
-      let cleanName = handle.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
-      if (cleanName.length < 3) cleanName = `${currentProvider}_Player`;
+      const db = getAccountsDB();
+      const key = handle.toLowerCase();
+      const account = db[key];
+
+      if (account) {
+        if (account.password === password) {
+          activeUser = {
+            username: account.username,
+            balance: account.balance || 50.00,
+            isGuest: false,
+            difficulty: 'normal'
+          };
+          closeSocialModal();
+          saveAndOpenLobby();
+          return;
+        } else {
+          errEl.innerText = "Authentication failed! Incorrect password.";
+          errEl.style.display = 'block';
+          return;
+        }
+      }
+
+      // If registering new social account, require password setting
+      const cleanName = handle.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+      const newAcc = {
+        username: cleanName,
+        email: handle.includes('@') ? handle : '',
+        password: password,
+        balance: 50.00
+      };
+
+      db[key] = newAcc;
+      db[cleanName.toLowerCase()] = newAcc;
+      saveAccountsDB(db);
 
       activeUser = {
         username: cleanName,
