@@ -14,34 +14,13 @@
     /* Header Bar */
     header {
       height: 52px; background: #11141c; border-bottom: 2px solid #d4af37;
-      display: flex; align-items: center; justify-content: space-between; padding: 0 12px; flex-shrink: 0; z-index: 20;
+      display: flex; align-align: center; justify-content: space-between; padding: 0 12px; flex-shrink: 0; z-index: 20;
     }
     .brand-container { display: flex; align-items: center; gap: 8px; }
     .user-avatar-hdr { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #ffd700; object-fit: cover; background: #1a233a; }
     .brand { display: flex; flex-direction: column; }
     .brand-title { color: #ffd700; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
     .brand-sub { color: #8a9bb8; font-size: 9px; }
-
-    /* 3D Poker Chips Stake Selector Overlay in Header */
-    #chip-bar-container {
-      display: flex; align-items: center; gap: 8px; z-index: 25; background: rgba(10, 14, 22, 0.9);
-      border: 1.5px solid #d4af37; border-radius: 24px; padding: 3px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.6);
-    }
-    .chip-label { font-size: 10px; font-weight: 800; color: #ffd700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .chip-group { display: flex; gap: 6px; }
-    .poker-chip {
-      width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 9px; font-weight: 900; color: #fff; cursor: pointer; position: relative;
-      border: 1.5px dashed rgba(255,255,255,0.85); box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 0 3px rgba(0,0,0,0.4);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .poker-chip:hover { transform: translateY(-2px) scale(1.08); }
-    .poker-chip.selected { transform: translateY(-3px) scale(1.15); box-shadow: 0 0 10px #ffd700, inset 0 0 5px #fff; border-color: #fff; }
-    .chip-1 { background: radial-gradient(circle, #3498db, #1d6fa5); }
-    .chip-5 { background: radial-gradient(circle, #2ecc71, #1e8449); }
-    .chip-10 { background: radial-gradient(circle, #e67e22, #a04000); }
-    .chip-25 { background: radial-gradient(circle, #9b59b6, #5b2c6f); }
-    .chip-50 { background: radial-gradient(circle, #e74c3c, #922b21); }
 
     .header-actions { display: flex; gap: 6px; align-items: center; }
     .stake-select {
@@ -234,8 +213,6 @@
       header { padding: 0 6px; }
       .brand-title { font-size: 11px; }
       .brand-sub { display: none; }
-      #chip-bar-container { padding: 2px 6px; gap: 4px; }
-      .poker-chip { width: 24px; height: 24px; font-size: 8px; }
       .btn-hdr { padding: 4px 6px; font-size: 9px; }
       .seat-left { left: 4px; }
       .seat-right { right: 4px; }
@@ -254,19 +231,9 @@
         </div>
       </div>
 
-      <!-- 3D Poker Chips Stake Picker in Header -->
-      <div id="chip-bar-container">
-        <span class="chip-label">Stake:</span>
-        <div class="chip-group">
-          <div class="poker-chip chip-1" onclick="selectStakeChip(1)">$1</div>
-          <div class="poker-chip chip-5 selected" onclick="selectStakeChip(5)">$5</div>
-          <div class="poker-chip chip-10" onclick="selectStakeChip(10)">$10</div>
-          <div class="poker-chip chip-25" onclick="selectStakeChip(25)">$25</div>
-          <div class="poker-chip chip-50" onclick="selectStakeChip(50)">$50</div>
-        </div>
-      </div>
-
       <div class="header-actions">
+        <!-- Synced Table Stake Badge from Lobby -->
+        <div class="stat-badge" id="hdr-stake-badge" style="color:#ffd700; border-color:#ffd700;">TABLE: $5</div>
         <select class="stake-select" id="ai-difficulty" onchange="changeDifficulty(this.value)">
           <option value="normal">⚡ Normal AI</option>
           <option value="hard">🧠 Hard AI (Pro Master & Trap)</option>
@@ -285,7 +252,7 @@
 
       <!-- Center Play Field -->
       <div id="center-field">
-        <div id="status-msg">CHOOSE YOUR STAKE CHIP & CLICK DEAL TO START</div>
+        <div id="status-msg">CLICK DEAL TO START MATCH</div>
         <div id="played-cards-area"></div>
       </div>
 
@@ -401,7 +368,7 @@
   <script>
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
-    let currentStake = 5;
+    let currentStake = parseFloat(localStorage.getItem('cybernova_selected_stake')) || 5;
     let currentDifficulty = 'normal';
 
     let sfxMute = false;
@@ -647,11 +614,18 @@
       }
     }
 
-    /* Seamless Registration & Storage Bridge */
+    /* Sync Session & Selected Stake */
     function syncUserSession() {
       const rawUser = localStorage.getItem('cyberNova_currentUser');
       let username = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
       let balance = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
+      
+      const savedStake = parseFloat(localStorage.getItem('cybernova_selected_stake'));
+      if (savedStake) {
+        currentStake = savedStake;
+      }
+
+      document.getElementById('hdr-stake-badge').innerText = `TABLE: $${currentStake}`;
 
       if (rawUser) {
         try {
@@ -699,14 +673,6 @@
           }
         } catch(e){}
       }
-    }
-
-    function selectStakeChip(val) {
-      if (gameActive) return;
-      currentStake = val;
-      document.querySelectorAll('.poker-chip').forEach(c => c.classList.remove('selected'));
-      document.querySelector(`.chip-${val}`).classList.add('selected');
-      document.getElementById('status-msg').innerText = `ROOM STAKE SET TO: $${currentStake} / HAND`;
     }
 
     function checkBrokeState() {
@@ -896,8 +862,6 @@
     function startNewGame() {
       syncUserSession();
       if (players[0].cash < currentStake) { checkBrokeState(); return; }
-
-      document.querySelectorAll('.poker-chip').forEach(c => c.style.pointerEvents = 'none');
 
       checkAndReplaceBrokeBots();
       const deck = createDeck();
@@ -1269,7 +1233,7 @@
 
           const rBadge = document.getElementById(`rank-badge-${lastPlayer.id}`);
           if (rBadge) {
-            rBadge.innerText = `#${lastPlayer.rank} HẠNG ${lastPlayer.rank === 2 ? 'NHÌ' : (lastPlayer.rank === 3 ? 'BA' : 'BẾT')}`;
+            rBadge.innerText = `#${lastPlayer.rank} HẠNG ${lastPlayer.rank === 2 ? 'NHÌ' : (lastPlayer.rank === 3 ? 'BA' : 'BÉT')}`;
             rBadge.classList.add('show');
           }
         }
@@ -1382,7 +1346,6 @@
       isFirstGame = false;
       playSound('endgame');
 
-      document.querySelectorAll('.poker-chip').forEach(c => c.style.pointerEvents = 'auto');
       document.getElementById('btn-deal').disabled = false;
 
       const container = document.getElementById('result-list-container');
@@ -1431,7 +1394,6 @@
 
     window.onload = () => {
       syncUserSession();
-      selectStakeChip(5);
     };
   </script>
 </body>
