@@ -132,11 +132,6 @@
     .card-corner { line-height: 1; text-align: left; }
     .card-suit-large { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; opacity: 0.85; }
 
-    .card-back {
-      background: linear-gradient(135deg, #1e3799, #0c2461); border: 2px solid #fff; border-radius: 6px;
-      width: 44px; height: 64px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    }
-
     /* Player Controls & Hand */
     .player-hand-container { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
     .hand-cards { display: flex; justify-content: center; margin-left: 20px; }
@@ -205,7 +200,7 @@
         <option value="hard">🔥 Hard AI (Pro)</option>
       </select>
       <button class="icon-btn" onclick="toggleSFX()" id="sfx-btn">🔊 SFX: ON</button>
-      <div class="bankroll-display" id="user-bankroll">$0.00</div>
+      <div class="bankroll-display" id="user-bankroll">$50.00</div>
     </div>
   </header>
 
@@ -303,9 +298,10 @@
     let sfxEnabled = true;
     let aiDifficulty = 'normal';
 
-    // Session Persistence Integration
+    // 1. SURGICAL FIX: Read saved registration session accurately
     const savedName = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
-    const savedChips = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
+    const rawChips = localStorage.getItem('cybernova_user_chips');
+    const savedChips = (rawChips !== null && !isNaN(parseFloat(rawChips))) ? parseFloat(rawChips) : 50.00;
 
     let players = [
       { id: 0, name: savedName, isHuman: true, cash: savedChips, cards: [], passed: false, rank: null },
@@ -597,6 +593,7 @@
       }
     }
 
+    // 2. SURGICAL FIX: Trigger winner banner strictly on 1st place clearance
     function registerHandFinished(player) {
       winners.push(player);
       player.rank = winners.length;
@@ -656,6 +653,7 @@
       return null;
     }
 
+    // 3. SURGICAL FIX: Itemized result table + session persistence
     function endGame() {
       gameActive = false;
       document.getElementById('btn-deal').disabled = false;
@@ -735,6 +733,10 @@
         seat.classList.toggle('passed', p.passed);
       });
 
+      // Update seat-0 username display if elements exist
+      const seat0Name = document.querySelector('#seat-0 .player-name');
+      if (seat0Name) seat0Name.innerText = players[0].name;
+
       const userHandElem = document.getElementById('userHand');
       userHandElem.innerHTML = '';
       players[0].cards.forEach((card, idx) => {
@@ -783,7 +785,7 @@
       document.getElementById('playedMsg').innerText = `${players[lastPlayerId].name} vừa đánh ${combo.type} (${cards.length} lá)`;
     }
 
-    // Initialize UI on load
+    // Boot UI on load immediately so header displays non-zero bankroll
     renderUI();
   </script>
 </body>
