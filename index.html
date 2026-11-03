@@ -205,7 +205,7 @@
         <option value="hard">🔥 Hard AI (Pro)</option>
       </select>
       <button class="icon-btn" onclick="toggleSFX()" id="sfx-btn">🔊 SFX: ON</button>
-      <div class="bankroll-display" id="user-bankroll">$20.00</div>
+      <div class="bankroll-display" id="user-bankroll">$0.00</div>
     </div>
   </header>
 
@@ -248,7 +248,7 @@
       <div class="last-played-cards" id="lastPlayedContainer"></div>
     </div>
 
-    <!-- Seat Bottom: User (RomeoOG) -->
+    <!-- Seat Bottom: User -->
     <div class="seat seat-bottom" id="seat-0">
       <div class="player-hand-container">
         <div class="action-bar">
@@ -303,8 +303,12 @@
     let sfxEnabled = true;
     let aiDifficulty = 'normal';
 
+    // Session Persistence Integration
+    const savedName = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
+    const savedChips = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
+
     let players = [
-      { id: 0, name: 'RomeoOG', isHuman: true, cash: 20.00, cards: [], passed: false, rank: null },
+      { id: 0, name: savedName, isHuman: true, cash: savedChips, cards: [], passed: false, rank: null },
       { id: 1, name: 'Thánh Đôi', isHuman: false, cash: 100.00, cards: [], passed: false, rank: null },
       { id: 2, name: 'Sơn Đen', isHuman: false, cash: 100.00, cards: [], passed: false, rank: null },
       { id: 3, name: 'Báo Béo', isHuman: false, cash: 100.00, cards: [], passed: false, rank: null }
@@ -317,6 +321,10 @@
     let gameActive = false;
     let chopLedger = { 0: 0, 1: 0, 2: 0, 3: 0 };
     let selectedIndices = [];
+
+    function saveUserSession() {
+      localStorage.setItem('cybernova_user_chips', players[0].cash.toFixed(2));
+    }
 
     // Audio SFX Synthesis
     function playSound(freq, duration = 0.1, type = 'sine') {
@@ -350,7 +358,6 @@
 
     function changeAIDifficulty(val) { aiDifficulty = val; }
 
-    /* Deck Building & Game Lifecycle */
     function createDeck() {
       let deck = [];
       for (let r = 0; r < RANKS.length; r++) {
@@ -378,7 +385,6 @@
       }
 
       let deck = createDeck();
-      // Shuffle
       for (let i = deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -398,7 +404,6 @@
         document.getElementById(`status-${idx}`).style.display = 'none';
       });
 
-      // Starter: Player holding 3 Spades (val:0, suitVal:0)
       currentTurn = 0;
       players.forEach(p => {
         if (p.cards.some(c => c.val === 0 && c.suitVal === 0)) {
@@ -416,32 +421,26 @@
       if (!players[currentTurn].isHuman) setTimeout(playAITurn, 1000);
     }
 
-    /* Combo Evaluation Logic */
     function evalCombo(cards) {
       if (!cards || cards.length === 0) return null;
       const sorted = sortCards([...cards]);
       const len = sorted.length;
 
-      // Single
       if (len === 1) return { type: 'SINGLE', weight: sorted[0].val * 4 + sorted[0].suitVal, topCard: sorted[0] };
 
-      // Pair
       if (len === 2 && sorted[0].val === sorted[1].val) {
         return { type: 'PAIR', weight: sorted[1].val * 4 + sorted[1].suitVal, topCard: sorted[1] };
       }
 
-      // Triple
       if (len === 3 && sorted[0].val === sorted[1].val && sorted[1].val === sorted[2].val) {
         return { type: 'TRIPLE', weight: sorted[2].val * 4 + sorted[2].suitVal, topCard: sorted[2] };
       }
 
-      // Quad (Tứ Quý)
       if (len === 4 && sorted[0].val === sorted[1].val && sorted[1].val === sorted[2].val && sorted[2].val === sorted[3].val) {
         return { type: 'QUAD', weight: sorted[3].val * 4 + sorted[3].suitVal, topCard: sorted[3] };
       }
 
-      // Straight (Sảnh - No 2s allowed)
-      if (len >= 3 && sorted[len - 1].val < 12) { // 12 is '2'
+      if (len >= 3 && sorted[len - 1].val < 12) {
         let isSeq = true;
         for (let i = 0; i < len - 1; i++) {
           if (sorted[i + 1].val !== sorted[i].val + 1) { isSeq = false; break; }
@@ -449,7 +448,6 @@
         if (isSeq) return { type: 'STRAIGHT', length: len, weight: sorted[len - 1].val * 4 + sorted[len - 1].suitVal, topCard: sorted[len - 1] };
       }
 
-      // 3 Pairs Consecutive (3 Đôi Thông)
       if (len === 6) {
         if (sorted[0].val === sorted[1].val && sorted[2].val === sorted[3].val && sorted[4].val === sorted[5].val &&
             sorted[2].val === sorted[0].val + 1 && sorted[4].val === sorted[2].val + 1 && sorted[4].val < 12) {
@@ -457,7 +455,6 @@
         }
       }
 
-      // 4 Pairs Consecutive (4 Đôi Thông)
       if (len === 8) {
         if (sorted[0].val === sorted[1].val && sorted[2].val === sorted[3].val && sorted[4].val === sorted[5].val && sorted[6].val === sorted[7].val &&
             sorted[2].val === sorted[0].val + 1 && sorted[4].val === sorted[2].val + 1 && sorted[6].val === sorted[4].val + 1 && sorted[6].val < 12) {
@@ -472,39 +469,31 @@
       if (!oldCombo) return true;
       if (!newCombo) return false;
 
-      // Chop Rules (Chặt)
-      // Single 2 chopped by 3 Pairs Seq, Quad, 4 Pairs Seq
       if (oldCombo.type === 'SINGLE' && oldCombo.topCard.val === 12) {
         if (['3_PAIR_SEQ', 'QUAD', '4_PAIR_SEQ'].includes(newCombo.type)) return true;
       }
-      // Pair 2s (Đôi Heo) chopped by Quad, 4 Pairs Seq
       if (oldCombo.type === 'PAIR' && oldCombo.topCard.val === 12) {
         if (['QUAD', '4_PAIR_SEQ'].includes(newCombo.type)) return true;
       }
-      // Quad chopped by higher Quad, 4 Pairs Seq
       if (oldCombo.type === 'QUAD') {
         if (newCombo.type === 'QUAD' && newCombo.weight > oldCombo.weight) return true;
         if (newCombo.type === '4_PAIR_SEQ') return true;
       }
-      // 3 Pairs Seq chopped by higher 3 Pairs Seq, Quad, 4 Pairs Seq
       if (oldCombo.type === '3_PAIR_SEQ') {
         if (newCombo.type === '3_PAIR_SEQ' && newCombo.weight > oldCombo.weight) return true;
         if (['QUAD', '4_PAIR_SEQ'].includes(newCombo.type)) return true;
       }
 
-      // Standard Match
       if (newCombo.type !== oldCombo.type) return false;
       if (newCombo.type === 'STRAIGHT' && newCombo.length !== oldCombo.length) return false;
 
       return newCombo.weight > oldCombo.weight;
     }
 
-    /* Turn Handling & Actions */
     function playCards(playerId, cards) {
       const combo = evalCombo(cards);
       if (!combo || !canBeat(combo, lastCombo)) return false;
 
-      // Check if Chop occurred
       if (lastCombo) {
         let chopBonus = 0;
         if (lastCombo.type === 'SINGLE' && lastCombo.topCard.val === 12) chopBonus = stake * 2;
@@ -519,7 +508,6 @@
         }
       }
 
-      // Update Player Hand
       const p = players[playerId];
       cards.forEach(c => {
         const idx = p.cards.findIndex(card => card.id === c.id);
@@ -530,10 +518,8 @@
       lastPlayerId = playerId;
       playSound(440, 0.08);
 
-      // Render Played Cards
       renderPlayedCards(cards, combo);
 
-      // Check Hand Clearance
       if (p.cards.length === 0) {
         registerHandFinished(p);
       }
@@ -564,10 +550,8 @@
     function advanceTurn() {
       if (!gameActive) return;
 
-      // Count active players (not passed and still have cards)
       let activePlayers = players.filter(p => !p.passed && p.cards.length > 0);
 
-      // Trick Reset if all other active players passed
       if (activePlayers.length <= 1 && lastPlayerId !== null) {
         if (activePlayers.length === 1 && activePlayers[0].id === lastPlayerId || activePlayers.length === 0) {
           resetTrickRound(lastPlayerId);
@@ -575,7 +559,6 @@
         }
       }
 
-      // Find next player
       let next = (currentTurn + 1) % 4;
       while (players[next].passed || players[next].cards.length === 0) {
         next = (next + 1) % 4;
@@ -600,7 +583,6 @@
         document.getElementById(`status-${p.id}`).style.display = 'none';
       });
 
-      // If lead player has no cards left, pass to next valid player
       let nextLead = leadPlayerId;
       while (players[nextLead].cards.length === 0) {
         nextLead = (nextLead + 1) % 4;
@@ -615,12 +597,10 @@
       }
     }
 
-    /* Strict Winner Banner Triggering (Fixes Premature Flash) */
     function registerHandFinished(player) {
       winners.push(player);
       player.rank = winners.length;
 
-      // BUG FIX: Only trigger "WINNER 1ST PLACE" when winners.length === 1
       if (winners.length === 1) {
         const banner = document.getElementById('winnerBanner');
         banner.innerText = `🏆 ${player.name} WINNER 1ST PLACE!`;
@@ -633,12 +613,10 @@
       }
     }
 
-    /* AI Decision Tree */
     function playAITurn() {
       if (!gameActive || currentTurn === 0) return;
       const ai = players[currentTurn];
 
-      // Simple AI logic: find lowest valid move
       let validMove = findAIMove(ai.cards, lastCombo);
 
       if (validMove) {
@@ -654,12 +632,10 @@
     }
 
     function findAIMove(hand, comboToBeat) {
-      // 1. Lead round
       if (!comboToBeat) {
-        return [hand[0]]; // Lead lowest single
+        return [hand[0]];
       }
 
-      // 2. Beat single
       if (comboToBeat.type === 'SINGLE') {
         for (let c of hand) {
           if (canBeat({ type: 'SINGLE', weight: c.val * 4 + c.suitVal, topCard: c }, comboToBeat)) {
@@ -668,7 +644,6 @@
         }
       }
 
-      // 3. Beat pair
       if (comboToBeat.type === 'PAIR') {
         for (let i = 0; i < hand.length - 1; i++) {
           if (hand[i].val === hand[i + 1].val) {
@@ -681,12 +656,10 @@
       return null;
     }
 
-    /* Itemized End-Game Accounting Modal */
     function endGame() {
       gameActive = false;
       document.getElementById('btn-deal').disabled = false;
 
-      // Assign remaining un-ranked players
       players.forEach(p => {
         if (!p.rank) {
           winners.push(p);
@@ -694,17 +667,15 @@
         }
       });
 
-      // Calculate Trapped Cards (Thối Heo / Thối Hàng)
       let thoiPenalties = { 0: 0, 1: 0, 2: 0, 3: 0 };
       players.forEach(p => {
         if (p.rank > 1) {
           p.cards.forEach(c => {
-            if (c.val === 12) thoiPenalties[p.id] -= stake * 2; // Trapped 2
+            if (c.val === 12) thoiPenalties[p.id] -= stake * 2;
           });
         }
       });
 
-      // Base Rank Payouts (1st: +$3x, 2nd: +$1x, 3rd: -$1x, 4th: -$3x stake)
       const rankMultipliers = { 1: 3, 2: 1, 3: -1, 4: -3 };
 
       let tbody = document.getElementById('resultTableBody');
@@ -717,6 +688,10 @@
         let netTotal = baseRankWin + totalChop + totalThoi;
 
         p.cash += netTotal;
+
+        if (p.isHuman) {
+          saveUserSession();
+        }
 
         let tr = document.createElement('tr');
         tr.innerHTML = `
@@ -744,14 +719,13 @@
 
     function watchVideoAdRefill() {
       players[0].cash += 20.00;
+      saveUserSession();
       document.getElementById('user-bankroll').innerText = `$${players[0].cash.toFixed(2)}`;
       document.getElementById('refillModal').style.display = 'none';
       alert("Đã nhận +$20.00 chips bonus!");
     }
 
-    /* UI Render Engine */
     function renderUI() {
-      // Update Seats & Badges
       players.forEach(p => {
         document.getElementById(`chips-${p.id}`).innerText = `$${p.cash.toFixed(0)}`;
         document.getElementById(`cards-left-${p.id}`).innerText = p.cards.length;
@@ -761,7 +735,6 @@
         seat.classList.toggle('passed', p.passed);
       });
 
-      // Render User Hand
       const userHandElem = document.getElementById('userHand');
       userHandElem.innerHTML = '';
       players[0].cards.forEach((card, idx) => {
@@ -775,7 +748,6 @@
         userHandElem.appendChild(cDiv);
       });
 
-      // Action Buttons State
       document.getElementById('btn-play').disabled = currentTurn !== 0 || !gameActive || selectedIndices.length === 0;
       document.getElementById('btn-pass').disabled = currentTurn !== 0 || !gameActive || !lastCombo;
       document.getElementById('user-bankroll').innerText = `$${players[0].cash.toFixed(2)}`;
@@ -810,6 +782,9 @@
       });
       document.getElementById('playedMsg').innerText = `${players[lastPlayerId].name} vừa đánh ${combo.type} (${cards.length} lá)`;
     }
+
+    // Initialize UI on load
+    renderUI();
   </script>
 </body>
 </html>
