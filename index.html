@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CYBERNOVA: Tiến Lên Miền Nam Pro</title>
-  <link rel="manifest" href="./manifest.json">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #07090e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #fff; touch-action: manipulation; }
@@ -515,7 +514,7 @@
       } catch(e){}
     }
 
-    const BOT_NAME_POOL = ['Chú Ba', 'Anh Sáu', 'Bé Bão', 'Thánh Đôi', 'Đại Ca Long', 'Minh Trọc', 'Sơn Đen', 'Hải Đăng', 'Báo Béo', 'Thắng Tây'];
+    const BOT_NAME_POOL = ['Chú Ba', 'Anh Sáu', 'Bé Bão', 'Thánh Đôi', 'Đại Ca Long', 'Minh Trọc', 'Sơn Đen', 'Hải Đăng', 'Bảo Béo', 'Thắng Tây'];
     const SUITS = ['♠', '♣', '♦', '♥'];
     const RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 
@@ -647,45 +646,32 @@
       }
     }
 
-    /* Seamless Registration & Storage Bridge */
     function syncUserSession() {
       const rawUser = localStorage.getItem('cyberNova_currentUser');
-      let username = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
-      let balance = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
-
       if (rawUser) {
         try {
           const u = JSON.parse(rawUser);
-          if (u.username) username = u.username;
-          if (u.balance !== undefined) balance = parseFloat(u.balance);
+          players[0].name = u.username || 'Player';
+          if (u.balance !== undefined) players[0].cash = parseFloat(u.balance);
           if (u.difficulty) {
             currentDifficulty = u.difficulty;
             document.getElementById('ai-difficulty').value = u.difficulty;
           }
           if (u.lastBonusTime) lastBonusTime = u.lastBonusTime;
 
+          document.getElementById('hdr-user-name').innerText = u.username + (u.isGuest ? " (Guest)" : "");
+          document.getElementById('name-0').innerText = u.username;
           if (u.avatar) {
             document.getElementById('hdr-avatar').src = u.avatar;
             document.getElementById('img-0').src = u.avatar;
           }
         } catch(e){}
+      } else {
+        window.location.href = 'register.html';
       }
-
-      players[0].name = username;
-      players[0].cash = balance;
-
-      document.getElementById('hdr-user-name').innerText = username;
-      document.getElementById('name-0').innerText = username;
-      const cashHeader = document.getElementById('player-cash');
-      if (cashHeader) cashHeader.innerText = '$' + players[0].cash.toFixed(0);
-      const cashSeat = document.getElementById('cash-0');
-      if (cashSeat) cashSeat.innerText = '$' + players[0].cash.toFixed(0);
     }
 
     function saveUserSession() {
-      localStorage.setItem('cybernova_user_chips', players[0].cash.toFixed(2));
-      localStorage.setItem('cybernova_user_name', players[0].name);
-
       const rawUser = localStorage.getItem('cyberNova_currentUser');
       if (rawUser) {
         try {
@@ -1269,7 +1255,7 @@
 
           const rBadge = document.getElementById(`rank-badge-${lastPlayer.id}`);
           if (rBadge) {
-            rBadge.innerText = `#${lastPlayer.rank} HẠNG ${lastPlayer.rank === 2 ? 'NHÌ' : (lastPlayer.rank === 3 ? 'BA' : 'BẾT')}`;
+            rBadge.innerText = `#${lastPlayer.rank} HẠNG ${lastPlayer.rank === 2 ? 'NHÌ' : (lastPlayer.rank === 3 ? 'BA' : 'BÉT')}`;
             rBadge.classList.add('show');
           }
         }
@@ -1401,7 +1387,7 @@
         const row = document.createElement('div');
         row.className = `result-row ${isWin ? 'winner' : ''} ${p.isCongLocked ? 'cong' : ''}`;
         
-        let rankStr = p.isCongLocked ? 'BỊ CÓNG' : `#${p.rank} HẠNG ${p.rank === 1 ? 'NHẤT' : (p.rank === 2 ? 'NHÌ' : (p.rank === 3 ? 'BA' : 'BẾT'))}`;
+        let rankStr = p.isCongLocked ? 'BỊ CÓNG' : `#${p.rank} HẠNG ${p.rank === 1 ? 'NHẤT' : (p.rank === 2 ? 'NHÌ' : (p.rank === 3 ? 'BA' : 'BÉT'))}`;
         let detailsStr = p.isCongLocked ? `Phạt Cóng + Thối: -$${p.congFinePaid.toFixed(0)}` : (p.hand.length > 0 ? `Remaining: ${p.hand.length} cards` : 'Cleared Hand!');
 
         row.innerHTML = `
