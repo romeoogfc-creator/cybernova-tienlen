@@ -1,0 +1,9 @@
+{
+  "name": "CYBERNOVA: Tiến Lên Miền Nam Pro",
+  "short_name": "Tiến Lên",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#07090e",
+  "theme_color": "#11141c",
+  "orientation": "landscape"
+}

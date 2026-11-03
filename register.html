@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Nova - Welcome & Registration</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: #080c10;
+            color: #e0e6ed;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            overflow: hidden;
+        }
+        .auth-card {
+            background: rgba(17, 24, 35, 0.95);
+            border: 2px solid #d4af37;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+            box-shadow: 0 0 35px rgba(212, 175, 55, 0.25);
+            text-align: center;
+        }
+        .title { color: #ffd700; font-size: 24px; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
+        .subtitle { color: #88a0b5; font-size: 12px; margin-bottom: 20px; }
+        
+        .form-group { text-align: left; margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 11px; color: #b0c4de; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+        .form-input {
+            width: 100%; background: #0d131d; border: 1px solid #2a3f5a; border-radius: 8px; padding: 10px; color: #fff; font-size: 13px; outline: none;
+        }
+        .form-input:focus { border-color: #ffd700; }
+
+        .avatar-selection { display: flex; justify-content: space-between; margin-top: 6px; }
+        .avatar-option {
+            width: 46px; height: 46px; border-radius: 50%; border: 2px solid #2a3f5a; cursor: pointer; object-fit: cover; transition: transform 0.15s, border-color 0.15s;
+        }
+        .avatar-option.selected { border-color: #ffd700; transform: scale(1.1); box-shadow: 0 0 10px #ffd700; }
+
+        .btn-submit {
+            width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 13px; cursor: pointer; text-transform: uppercase; margin-top: 10px; transition: opacity 0.2s;
+        }
+        .btn-register { background: linear-gradient(135deg, #d4af37, #f39c12); color: #000; margin-bottom: 10px; }
+        .btn-guest { background: #2a3f5a; color: #00ffcc; border: 1px solid #00ffcc; }
+        .btn-submit:hover { opacity: 0.9; }
+
+        .divider { display: flex; align-items: center; text-align: center; color: #566a94; font-size: 11px; margin: 15px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #2a3f5a; }
+        .divider span { padding: 0 10px; }
+    </style>
+</head>
+<body>
+
+<div class="auth-card">
+    <div class="title">CYBER NOVA</div>
+    <div class="subtitle">Tiến Lên Miền Nam Casino</div>
+
+    <div class="form-group">
+        <label for="usernameInput">Username / Display Name</label>
+        <input type="text" id="usernameInput" class="form-input" placeholder="Enter name...">
+    </div>
+
+    <div class="form-group">
+        <label>Select Avatar</label>
+        <div class="avatar-selection" id="avatarGroup">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Romeo" class="avatar-option selected" onclick="selectAvatar(this)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Vegas" class="avatar-option" onclick="selectAvatar(this)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Phoenix" class="avatar-option" onclick="selectAvatar(this)">
+            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Dragon" class="avatar-option" onclick="selectAvatar(this)">
+        </div>
+    </div>
+
+    <button class="btn-submit btn-register" onclick="registerUser()">Start Playing (Claim $50 Bonus)</button>
+    
+    <div class="divider"><span>OR</span></div>
+    
+    <button class="btn-submit btn-guest" onclick="playAsGuest()">Play as Guest (Start with $20)</button>
+</div>
+
+<script>
+    let selectedAvatarSrc = "https://api.dicebear.com/7.x/bottts/svg?seed=Romeo";
+
+    function selectAvatar(el) {
+        document.querySelectorAll('.avatar-option').forEach(img => img.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedAvatarSrc = el.src;
+    }
+
+    function registerUser() {
+        const name = document.getElementById('usernameInput').value.trim();
+        if (!name) {
+            alert("Please enter a username!");
+            return;
+        }
+
+        const userAccount = {
+            username: name,
+            balance: 50.00, // Registered Sign-up Bonus: $50
+            avatar: selectedAvatarSrc,
+            isGuest: false,
+            difficulty: "normal",
+            lastBonusTime: 0
+        };
+
+        localStorage.setItem(`cyberNova_account_${name}`, JSON.stringify(userAccount));
+        localStorage.setItem('cyberNova_currentUser', JSON.stringify(userAccount));
+        window.location.href = 'index.html';
+    }
+
+    function playAsGuest() {
+        const guestId = Math.floor(1000 + Math.random() * 9000);
+        const guestAccount = {
+            username: `Guest_${guestId}`,
+            balance: 20.00, // Guest Starting Balance: $20
+            avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest" + guestId,
+            isGuest: true,
+            difficulty: "normal",
+            lastBonusTime: 0
+        };
+
+        localStorage.setItem('cyberNova_currentUser', JSON.stringify(guestAccount));
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>
