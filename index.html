@@ -14,7 +14,7 @@
     /* Header Bar */
     header {
       height: 52px; background: #11141c; border-bottom: 2px solid #d4af37;
-      display: flex; align-align: center; justify-content: space-between; padding: 0 12px; flex-shrink: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 12px; flex-shrink: 0; z-index: 20;
     }
     .brand-container { display: flex; align-items: center; gap: 8px; }
     .user-avatar-hdr { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #ffd700; object-fit: cover; background: #1a233a; }
@@ -153,7 +153,7 @@
     }
     .btn-sort-pill:active { transform: scale(0.95); }
 
-    /* Special Combo & Chop Banner Overlays */
+    /* Combo Banner Overlay */
     #combo-banner {
       position: absolute; top: 32%; left: 50%; transform: translate(-50%, -50%) scale(0);
       background: linear-gradient(135deg, #b01010, #600505); border: 3px solid #ffd700; border-radius: 14px; padding: 10px 22px;
@@ -179,7 +179,7 @@
     .btn-timer { background: linear-gradient(135deg, #f39c12, #d35400); color: #fff; }
     .btn-timer:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* POST-MATCH SUMMARY MODAL ("Bảng Kết Quả") */
+    /* POST-MATCH SUMMARY MODAL */
     #resultModal {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(5, 7, 12, 0.92); display: none; justify-content: center; align-items: center; z-index: 9000;
@@ -232,7 +232,6 @@
       </div>
 
       <div class="header-actions">
-        <!-- Synced Table Stake Badge from Lobby -->
         <div class="stat-badge" id="hdr-stake-badge" style="color:#ffd700; border-color:#ffd700;">TABLE: $5</div>
         <select class="stake-select" id="ai-difficulty" onchange="changeDifficulty(this.value)">
           <option value="normal">⚡ Normal AI</option>
@@ -247,10 +246,8 @@
     </header>
 
     <div id="table-viewport" class="theme-red">
-      <!-- Combo & Chop Alert Overlay -->
       <div id="combo-banner">💥 CHOP! 💥</div>
 
-      <!-- Center Play Field -->
       <div id="center-field">
         <div id="status-msg">CLICK DEAL TO START MATCH</div>
         <div id="played-cards-area"></div>
@@ -341,7 +338,7 @@
     </div>
   </div>
 
-  <!-- WSOP BROKE REFILL POPUP MODAL -->
+  <!-- WSOP REFILL MODAL -->
   <div id="refillModal">
     <div class="refill-box">
       <div class="refill-title">OUT OF CHIPS!</div>
@@ -351,13 +348,11 @@
     </div>
   </div>
 
-  <!-- POST-MATCH SUMMARY MODAL ("Bảng Kết Quả") -->
+  <!-- POST-MATCH SUMMARY MODAL -->
   <div id="resultModal">
     <div class="result-box">
       <div class="result-title">🏆 BẢNG KẾT QUẢ 🏆</div>
-      <div class="result-list" id="result-list-container">
-        <!-- populated dynamically -->
-      </div>
+      <div class="result-list" id="result-list-container"></div>
       <div class="result-actions">
         <button class="btn-res btn-res-exit" onclick="logoutUser()">THOÁT</button>
         <button class="btn-res btn-res-new" onclick="closeResultModal(); startNewGame();">VÁN MỚI</button>
@@ -539,21 +534,8 @@
       });
     }
 
-    function getNextActivePlayerClockwise(fromIdx) {
-      for (let offset = 1; offset <= 4; offset++) {
-        let checkIdx = (fromIdx + offset) % 4;
-        const p = players[checkIdx];
-        if (p.rank === 0 && !p.isCongLocked) {
-          if (!p.passed) return checkIdx;
-          if (lastCombo && hasValidChopInHand(p.hand, lastCombo)) return checkIdx;
-        }
-      }
-      resetRoundForNewTrick();
-      return getNextLeaderClockwise(fromIdx);
-    }
-
     function getNextLeaderClockwise(fromIdx) {
-      for (let offset = 0; offset <= 4; offset++) {
+      for (let offset = 0; offset < 4; offset++) {
         let checkIdx = (fromIdx + offset) % 4;
         const p = players[checkIdx];
         if (p.rank === 0 && !p.isCongLocked) return checkIdx;
@@ -561,10 +543,35 @@
       return 0;
     }
 
-    function checkRoundComplete() {
-      if (!lastCombo) return true;
-      const eligibleOpponents = players.filter(p => p.rank === 0 && !p.isCongLocked && p.id !== lastCombo.owner && (!p.passed || hasValidChopInHand(p.hand, lastCombo)));
-      return eligibleOpponents.length === 0;
+    function getNextActivePlayerClockwise(fromIdx) {
+      if (lastCombo) {
+        for (let offset = 1; offset <= 4; offset++) {
+          let checkIdx = (fromIdx + offset) % 4;
+
+          // If turn rotated all the way back around to trick owner, trick is complete!
+          if (checkIdx === lastCombo.owner) {
+            let leader = lastCombo.owner;
+            resetRoundForNewTrick();
+            return getNextLeaderClockwise(leader);
+          }
+
+          const p = players[checkIdx];
+          if (p.rank === 0 && !p.isCongLocked) {
+            if (!p.passed) return checkIdx;
+            if (hasValidChopInHand(p.hand, lastCombo)) return checkIdx;
+          }
+        }
+      }
+
+      // If no active combo (new trick starting or reset), find next active player clockwise
+      for (let offset = 1; offset <= 4; offset++) {
+        let checkIdx = (fromIdx + offset) % 4;
+        const p = players[checkIdx];
+        if (p.rank === 0 && !p.isCongLocked) {
+          return checkIdx;
+        }
+      }
+      return 0;
     }
 
     function startTurnTimer(playerIdx) {
@@ -614,16 +621,13 @@
       }
     }
 
-    /* Sync Session & Selected Stake */
     function syncUserSession() {
       const rawUser = localStorage.getItem('cyberNova_currentUser');
       let username = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
       let balance = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
       
       const savedStake = parseFloat(localStorage.getItem('cybernova_selected_stake'));
-      if (savedStake) {
-        currentStake = savedStake;
-      }
+      if (savedStake) currentStake = savedStake;
 
       document.getElementById('hdr-stake-badge').innerText = `TABLE: $${currentStake}`;
 
@@ -1159,13 +1163,8 @@
       selectedIndices = [];
       saveUserSession();
       
-      if (isChop) {
-        currentTurn = playerIdx;
-        resetRoundForNewTrick();
-      } else {
-        combo.owner = playerIdx;
-        lastCombo = combo;
-      }
+      combo.owner = playerIdx;
+      lastCombo = combo;
 
       renderPlayedCards(cardsPlayed);
       document.getElementById('status-msg').innerText = `${players[playerIdx].name} played ${combo.type} (${cardsPlayed.length} cards)`;
@@ -1233,7 +1232,7 @@
 
           const rBadge = document.getElementById(`rank-badge-${lastPlayer.id}`);
           if (rBadge) {
-            rBadge.innerText = `#${lastPlayer.rank} HẠNG ${lastPlayer.rank === 2 ? 'NHÌ' : (lastPlayer.rank === 3 ? 'BA' : 'BÉT')}`;
+            rBadge.innerText = `#${lastPlayer.rank} HẠNG ${lastPlayer.rank === 2 ? 'NHÌ' : (lastPlayer.rank === 3 ? 'BA' : 'BẾT')}`;
             rBadge.classList.add('show');
           }
         }
@@ -1241,33 +1240,15 @@
         return;
       }
 
-      if (isChop) {
-        updateUI();
-        startTurnTimer(currentTurn);
-        if (players[currentTurn].isBot) setTimeout(botTurn, 800);
-      } else {
-        advanceTurn();
-      }
+      advanceTurn();
     }
 
     function executePass(playerIdx) {
+      if (!gameActive || currentTurn !== playerIdx || !lastCombo) return;
       players[playerIdx].passed = true;
       
       const pBadge = document.getElementById(`pass-badge-${playerIdx}`);
       if (pBadge) pBadge.classList.add('show');
-
-      if (checkRoundComplete()) {
-        let roundWinner = lastCombo ? lastCombo.owner : playerIdx;
-        resetRoundForNewTrick();
-        
-        let nextLeader = getNextLeaderClockwise(roundWinner);
-        currentTurn = nextLeader;
-        document.getElementById('status-msg').innerText = `ROUND WON BY ${players[currentTurn].name.toUpperCase()}! NEW TRICK LEADER`;
-        updateUI();
-        startTurnTimer(currentTurn);
-        if (players[currentTurn].isBot) setTimeout(botTurn, 800);
-        return;
-      }
 
       advanceTurn();
     }
