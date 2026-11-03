@@ -1,131 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Nova - Welcome & Registration</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body {
-            background: #080c10;
-            color: #e0e6ed;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-            overflow: hidden;
-        }
-        .auth-card {
-            background: rgba(17, 24, 35, 0.95);
-            border: 2px solid #d4af37;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 420px;
-            padding: 24px;
-            box-shadow: 0 0 35px rgba(212, 175, 55, 0.25);
-            text-align: center;
-        }
-        .title { color: #ffd700; font-size: 24px; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
-        .subtitle { color: #88a0b5; font-size: 12px; margin-bottom: 20px; }
-        
-        .form-group { text-align: left; margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 11px; color: #b0c4de; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
-        .form-input {
-            width: 100%; background: #0d131d; border: 1px solid #2a3f5a; border-radius: 8px; padding: 10px; color: #fff; font-size: 13px; outline: none;
-        }
-        .form-input:focus { border-color: #ffd700; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERNOVA - Account Portal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body {
+      background: #07090e; color: #fff; height: 100vh; display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+    }
+    .auth-card {
+      background: #121621; border: 2px solid #ffcc00; border-radius: 16px;
+      width: 90%; max-width: 420px; padding: 30px; text-align: center;
+      box-shadow: 0 0 30px rgba(255, 204, 0, 0.2);
+    }
+    .auth-title { font-size: 24px; font-weight: 900; color: #ffcc00; margin-bottom: 6px; letter-spacing: 1px; }
+    .auth-sub { font-size: 12px; color: #8a99ad; margin-bottom: 24px; }
+    
+    .input-group { margin-bottom: 16px; text-align: left; }
+    .input-label { font-size: 11px; font-weight: 700; color: #bdc3c7; margin-bottom: 6px; display: block; text-transform: uppercase; }
+    .input-field {
+      width: 100%; background: #1a202c; border: 1px solid #2d3748; color: #fff;
+      padding: 12px; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s;
+    }
+    .input-field:focus { border-color: #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.3); }
 
-        .avatar-selection { display: flex; justify-content: space-between; margin-top: 6px; }
-        .avatar-option {
-            width: 46px; height: 46px; border-radius: 50%; border: 2px solid #2a3f5a; cursor: pointer; object-fit: cover; transition: transform 0.15s, border-color 0.15s;
-        }
-        .avatar-option.selected { border-color: #ffd700; transform: scale(1.1); box-shadow: 0 0 10px #ffd700; }
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 800;
+      font-size: 13px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+      transition: 0.2s; margin-bottom: 12px;
+    }
+    .btn-gold { background: linear-gradient(180deg, #f39c12, #d35400); color: #fff; box-shadow: 0 4px 12px rgba(243,156,18,0.4); }
+    .btn-gold:hover { transform: translateY(-1px); filter: brightness(1.1); }
+    .btn-guest { background: #2c3e50; color: #ecf0f1; border: 1px solid #4a6572; }
+    .btn-guest:hover { background: #34495e; }
 
-        .btn-submit {
-            width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 13px; cursor: pointer; text-transform: uppercase; margin-top: 10px; transition: opacity 0.2s;
-        }
-        .btn-register { background: linear-gradient(135deg, #d4af37, #f39c12); color: #000; margin-bottom: 10px; }
-        .btn-guest { background: #2a3f5a; color: #00ffcc; border: 1px solid #00ffcc; }
-        .btn-submit:hover { opacity: 0.9; }
-
-        .divider { display: flex; align-items: center; text-align: center; color: #566a94; font-size: 11px; margin: 15px 0; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #2a3f5a; }
-        .divider span { padding: 0 10px; }
-    </style>
+    .divider { margin: 16px 0; color: #4a5568; font-size: 12px; font-weight: 700; position: relative; }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #2d3748;
+    }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+  </style>
 </head>
 <body>
 
-<div class="auth-card">
-    <div class="title">CYBER NOVA</div>
-    <div class="subtitle">Tiến Lên Miền Nam Casino</div>
+  <div class="auth-card">
+    <div class="auth-title">CYBER NOVA</div>
+    <div class="auth-sub">Tiến Lên Miền Nam Casino Pro</div>
 
-    <div class="form-group">
-        <label for="usernameInput">Username / Display Name</label>
-        <input type="text" id="usernameInput" class="form-input" placeholder="Enter name...">
-    </div>
+    <form onsubmit="handleRegister(event)">
+      <div class="input-group">
+        <label class="input-label">Username / Display Name</label>
+        <input type="text" id="username-input" class="input-field" placeholder="Enter name..." required maxlength="15">
+      </div>
+      <button type="submit" class="btn btn-gold">START PLAYING (CLAIM $50 BONUS)</button>
+    </form>
 
-    <div class="form-group">
-        <label>Select Avatar</label>
-        <div class="avatar-selection" id="avatarGroup">
-            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Romeo" class="avatar-option selected" onclick="selectAvatar(this)">
-            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Vegas" class="avatar-option" onclick="selectAvatar(this)">
-            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Phoenix" class="avatar-option" onclick="selectAvatar(this)">
-            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Dragon" class="avatar-option" onclick="selectAvatar(this)">
-        </div>
-    </div>
+    <div class="divider">OR</div>
 
-    <button class="btn-submit btn-register" onclick="registerUser()">Start Playing (Claim $50 Bonus)</button>
-    
-    <div class="divider"><span>OR</span></div>
-    
-    <button class="btn-submit btn-guest" onclick="playAsGuest()">Play as Guest (Start with $20)</button>
-</div>
+    <button class="btn btn-guest" onclick="handleGuestPlay()">PLAY AS GUEST (START WITH $20)</button>
+  </div>
 
-<script>
-    let selectedAvatarSrc = "https://api.dicebear.com/7.x/bottts/svg?seed=Romeo";
+  <script>
+    function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('username-input').value.trim();
+      if (!name) return;
 
-    function selectAvatar(el) {
-        document.querySelectorAll('.avatar-option').forEach(img => img.classList.remove('selected'));
-        el.classList.add('selected');
-        selectedAvatarSrc = el.src;
+      localStorage.setItem('cybernova_user_name', name);
+      localStorage.setItem('cybernova_user_chips', '50.00');
+      localStorage.setItem('cybernova_account_type', 'registered');
+      window.location.href = './index.html';
     }
 
-    function registerUser() {
-        const name = document.getElementById('usernameInput').value.trim();
-        if (!name) {
-            alert("Please enter a username!");
-            return;
-        }
-
-        const userAccount = {
-            username: name,
-            balance: 50.00, // Registered Sign-up Bonus: $50
-            avatar: selectedAvatarSrc,
-            isGuest: false,
-            difficulty: "normal",
-            lastBonusTime: 0
-        };
-
-        localStorage.setItem(`cyberNova_account_${name}`, JSON.stringify(userAccount));
-        localStorage.setItem('cyberNova_currentUser', JSON.stringify(userAccount));
-        window.location.href = 'index.html';
+    function handleGuestPlay() {
+      const randomId = Math.floor(1000 + Math.random() * 9000);
+      localStorage.setItem('cybernova_user_name', `Guest_${randomId}`);
+      localStorage.setItem('cybernova_user_chips', '20.00');
+      localStorage.setItem('cybernova_account_type', 'guest');
+      window.location.href = './index.html';
     }
+  </script>
 
-    function playAsGuest() {
-        const guestId = Math.floor(1000 + Math.random() * 9000);
-        const guestAccount = {
-            username: `Guest_${guestId}`,
-            balance: 20.00, // Guest Starting Balance: $20
-            avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Guest" + guestId,
-            isGuest: true,
-            difficulty: "normal",
-            lastBonusTime: 0
-        };
-
-        localStorage.setItem('cyberNova_currentUser', JSON.stringify(guestAccount));
-        window.location.href = 'index.html';
-    }
-</script>
 </body>
 </html>
