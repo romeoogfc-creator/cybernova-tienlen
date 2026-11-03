@@ -2,86 +2,418 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CYBERNOVA - Account Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CYBERNOVA: Portal & Table Lobby</title>
+  <link rel="manifest" href="./manifest.json">
+  <!-- Google Identity Services Script for Google OAuth -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body {
-      background: #07090e; color: #fff; height: 100vh; display: flex;
-      align-items: center; justify-content: center; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at center, #1b2333 0%, #080b12 100%);
+      color: #fff;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .auth-card {
-      background: #121621; border: 2px solid #ffcc00; border-radius: 16px;
-      width: 90%; max-width: 420px; padding: 30px; text-align: center;
-      box-shadow: 0 0 30px rgba(255, 204, 0, 0.2);
+
+    .portal-card {
+      background: rgba(18, 24, 38, 0.95);
+      border: 2px solid #d4af37;
+      border-radius: 20px;
+      width: 92%;
+      max-width: 440px;
+      padding: 28px 24px;
+      box-shadow: 0 0 40px rgba(212, 175, 55, 0.35);
+      text-align: center;
+      position: relative;
     }
-    .auth-title { font-size: 24px; font-weight: 900; color: #ffcc00; margin-bottom: 6px; letter-spacing: 1px; }
-    .auth-sub { font-size: 12px; color: #8a99ad; margin-bottom: 24px; }
-    
-    .input-group { margin-bottom: 16px; text-align: left; }
-    .input-label { font-size: 11px; font-weight: 700; color: #bdc3c7; margin-bottom: 6px; display: block; text-transform: uppercase; }
+
+    .brand-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #ffd700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: #8a9bb8;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Auth Navigation Tabs */
+    .tab-bar {
+      display: flex;
+      background: #0d121d;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 18px;
+      border: 1px solid #232f48;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #8a9bb8;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #d4af37;
+      color: #000;
+      box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+    }
+
+    /* Forms & Views */
+    .view-section { display: none; flex-direction: column; gap: 12px; }
+    .view-section.active { display: flex; }
+
+    .input-group { text-align: left; }
+    .input-label { font-size: 10px; font-weight: 800; color: #ffd700; margin-bottom: 4px; display: block; text-transform: uppercase; }
     .input-field {
-      width: 100%; background: #1a202c; border: 1px solid #2d3748; color: #fff;
-      padding: 12px; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s;
+      width: 100%;
+      background: #0d121d;
+      border: 1.5px solid #2a3850;
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: 0.2s;
     }
-    .input-field:focus { border-color: #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.3); }
+    .input-field:focus { border-color: #ffd700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
 
-    .btn {
-      width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 800;
-      font-size: 13px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
-      transition: 0.2s; margin-bottom: 12px;
+    .btn-action {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 900;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: transform 0.1s, box-shadow 0.2s;
     }
-    .btn-gold { background: linear-gradient(180deg, #f39c12, #d35400); color: #fff; box-shadow: 0 4px 12px rgba(243,156,18,0.4); }
-    .btn-gold:hover { transform: translateY(-1px); filter: brightness(1.1); }
-    .btn-guest { background: #2c3e50; color: #ecf0f1; border: 1px solid #4a6572; }
-    .btn-guest:hover { background: #34495e; }
+    .btn-action:active { transform: scale(0.98); }
+    .btn-gold { background: linear-gradient(135deg, #ffd700, #d4af37); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); }
+    .btn-guest { background: linear-gradient(135deg, #2c3e50, #1a252f); color: #ecf0f1; border: 1px solid #4a6572; }
 
-    .divider { margin: 16px 0; color: #4a5568; font-size: 12px; font-weight: 700; position: relative; }
-    .divider::before, .divider::after {
-      content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #2d3748;
+    /* Gamer Social Logins */
+    .divider { display: flex; align-items: center; margin: 12px 0; color: #5a6b8c; font-size: 10px; font-weight: 800; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #232f48; }
+    .divider span { padding: 0 8px; }
+
+    .social-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .social-btn {
+      background: #0d121d;
+      border: 1px solid #232f48;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.2s;
     }
-    .divider::before { left: 0; } .divider::after { right: 0; }
+    .social-btn:hover { border-color: #ffd700; background: #161e2e; transform: translateY(-2px); }
+    .social-btn svg { width: 20px; height: 20px; }
+
+    /* TABLE LOBBY SELECTOR VIEW */
+    .lobby-header { margin-bottom: 14px; text-align: left; background: #0d121d; padding: 10px 14px; border-radius: 10px; border: 1px solid #232f48; display: flex; justify-content: space-between; align-items: center; }
+    .lobby-user { font-size: 12px; font-weight: 800; color: #fff; }
+    .lobby-bankroll { font-size: 13px; font-weight: 900; color: #00ffcc; }
+
+    .table-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
+    .table-card {
+      background: #0d121d;
+      border: 1.5px solid #232f48;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .table-card:hover, .table-card.selected { border-color: #ffd700; background: rgba(255, 215, 0, 0.06); }
+    .table-info { text-align: left; }
+    .table-name { font-size: 12px; font-weight: 800; color: #ffd700; }
+    .table-req { font-size: 10px; color: #8a9bb8; }
+    .table-stake-chip {
+      background: linear-gradient(135deg, #e67e22, #d35400);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid #fff;
+    }
   </style>
 </head>
 <body>
 
-  <div class="auth-card">
-    <div class="auth-title">CYBER NOVA</div>
-    <div class="auth-sub">Tiến Lên Miền Nam Casino Pro</div>
+  <div class="portal-card">
+    <div class="brand-title">CYBER NOVA</div>
+    <div class="brand-sub">Tiến Lên Miền Nam Casino</div>
 
-    <form onsubmit="handleRegister(event)">
-      <div class="input-group">
-        <label class="input-label">Username / Display Name</label>
-        <input type="text" id="username-input" class="input-field" placeholder="Enter name..." required maxlength="15">
+    <!-- AUTHENTICATION VIEW -->
+    <div id="authView">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchAuthTab('signin')">SIGN IN</button>
+        <button class="tab-btn" onclick="switchAuthTab('signup')">CREATE ACCOUNT</button>
+        <button class="tab-btn" onclick="switchAuthTab('guest')">GUEST</button>
       </div>
-      <button type="submit" class="btn btn-gold">START PLAYING (CLAIM $50 BONUS)</button>
-    </form>
 
-    <div class="divider">OR</div>
+      <!-- Sign In Tab -->
+      <div id="tabSignIn" class="view-section active">
+        <div class="input-group">
+          <label class="input-label">Username or Email</label>
+          <input type="text" id="loginUsername" class="input-field" placeholder="Enter username...">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <input type="password" id="loginPassword" class="input-field" placeholder="••••••••">
+        </div>
+        <button class="btn-action btn-gold" onclick="processSignIn()">SIGN IN & PLAY</button>
+      </div>
 
-    <button class="btn btn-guest" onclick="handleGuestPlay()">PLAY AS GUEST (START WITH $20)</button>
+      <!-- Create Account Tab -->
+      <div id="tabSignUp" class="view-section">
+        <div class="input-group">
+          <label class="input-label">Display Name / Username</label>
+          <input type="text" id="regUsername" class="input-field" placeholder="Choose a display name...">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Email Address</label>
+          <input type="email" id="regEmail" class="input-field" placeholder="player@domain.com">
+        </div>
+        <button class="btn-action btn-gold" onclick="processSignUp()">CLAIM $50 & CREATE ACCOUNT</button>
+      </div>
+
+      <!-- Guest Tab -->
+      <div id="tabGuest" class="view-section">
+        <p style="font-size:12px; color:#8a9bb8; line-height:1.4;">Play instantly with a <b>$20 Guest Bankroll</b>. Progress will be saved temporarily in your current browser session.</p>
+        <button class="btn-action btn-guest" onclick="processGuestEntry()">PLAY INSTANTLY ($20)</button>
+      </div>
+
+      <div class="divider"><span>OR CONTINUE WITH GAMER ACCOUNTS</span></div>
+
+      <!-- Social / Gamer Logins -->
+      <div class="social-grid">
+        <!-- Google -->
+        <div class="social-btn" title="Google Sign-In" onclick="triggerGoogleSignIn()">
+          <svg viewBox="0 0 24 24"><path fill="#ea4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285f4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#fbbc05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9z"/><path fill="#34a853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/></svg>
+        </div>
+        <!-- Discord -->
+        <div class="social-btn" title="Discord" onclick="triggerSocialAuth('Discord')">
+          <svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+        </div>
+        <!-- Twitch -->
+        <div class="social-btn" title="Twitch" onclick="triggerSocialAuth('Twitch')">
+          <svg viewBox="0 0 24 24" fill="#9146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+        </div>
+        <!-- Steam -->
+        <div class="social-btn" title="Steam" onclick="triggerSocialAuth('Steam')">
+          <svg viewBox="0 0 24 24" fill="#171a21"><path fill="#101823" d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.03 4.524 4.524s-2.03 4.524-4.524 4.524h-.105l-4.076 2.911c.002.052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.007-1.154-3.32-2.705L.405 14.74C1.83 20.002 6.552 24 12.18 24c6.627 0 12-5.373 12-12S18.605 0 11.979 0z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE SELECTION LOBBY VIEW (Shows after authentication) -->
+    <div id="lobbyView" style="display:none;">
+      <div class="lobby-header">
+        <div>
+          <div style="font-size:9px; color:#8a9bb8;">LOGGED IN AS</div>
+          <div class="lobby-user" id="lobbyUserName">Player</div>
+        </div>
+        <div>
+          <div style="font-size:9px; color:#8a9bb8; text-align:right;">BANKROLL</div>
+          <div class="lobby-bankroll" id="lobbyBankroll">$50.00</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px; font-weight:800; color:#ffd700; text-align:left; margin-bottom:8px; text-transform:uppercase;">Select Table Stake</div>
+
+      <div class="table-list">
+        <div class="table-card selected" onclick="selectTable(1, this)">
+          <div class="table-info">
+            <div class="table-name">🌱 Rookie Table</div>
+            <div class="table-req">Min Balance: $1.00</div>
+          </div>
+          <div class="table-stake-chip">$1 / Hand</div>
+        </div>
+
+        <div class="table-card" onclick="selectTable(5, this)">
+          <div class="table-info">
+            <div class="table-name">⚡ Standard Club</div>
+            <div class="table-req">Min Balance: $5.00</div>
+          </div>
+          <div class="table-stake-chip" style="background: linear-gradient(135deg, #2ecc71, #1e8449);">$5 / Hand</div>
+        </div>
+
+        <div class="table-card" onclick="selectTable(10, this)">
+          <div class="table-info">
+            <div class="table-name">🔥 Pro Master</div>
+            <div class="table-req">Min Balance: $10.00</div>
+          </div>
+          <div class="table-stake-chip" style="background: linear-gradient(135deg, #e67e22, #a04000);">$10 / Hand</div>
+        </div>
+
+        <div class="table-card" onclick="selectTable(25, this)">
+          <div class="table-info">
+            <div class="table-name">💎 High Roller</div>
+            <div class="table-req">Min Balance: $25.00</div>
+          </div>
+          <div class="table-stake-chip" style="background: linear-gradient(135deg, #9b59b6, #5b2c6f);">$25 / Hand</div>
+        </div>
+
+        <div class="table-card" onclick="selectTable(50, this)">
+          <div class="table-info">
+            <div class="table-name">👑 VIP Suite</div>
+            <div class="table-req">Min Balance: $50.00</div>
+          </div>
+          <div class="table-stake-chip" style="background: linear-gradient(135deg, #e74c3c, #922b21);">$50 / Hand</div>
+        </div>
+      </div>
+
+      <button class="btn-action btn-gold" style="margin-top:14px;" onclick="enterGameTable()">ENTER GAME TABLE</button>
+    </div>
+
   </div>
 
   <script>
-    function handleRegister(e) {
-      e.preventDefault();
-      const name = document.getElementById('username-input').value.trim();
-      if (!name) return;
+    let activeUser = null;
+    let selectedStake = 5;
 
-      localStorage.setItem('cybernova_user_name', name);
-      localStorage.setItem('cybernova_user_chips', '50.00');
-      localStorage.setItem('cybernova_account_type', 'registered');
-      window.location.href = './index.html';
+    function switchAuthTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+
+      if (tab === 'signin') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('tabSignIn').classList.add('active');
+      } else if (tab === 'signup') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('tabSignUp').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('tabGuest').classList.add('active');
+      }
     }
 
-    function handleGuestPlay() {
-      const randomId = Math.floor(1000 + Math.random() * 9000);
-      localStorage.setItem('cybernova_user_name', `Guest_${randomId}`);
-      localStorage.setItem('cybernova_user_chips', '20.00');
-      localStorage.setItem('cybernova_account_type', 'guest');
-      window.location.href = './index.html';
+    function processSignIn() {
+      const username = document.getElementById('loginUsername').value.trim() || 'RomeoOG';
+      
+      // Look up account in local storage or default to saved chips
+      let savedChips = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
+      
+      activeUser = {
+        username: username,
+        balance: savedChips,
+        isGuest: false,
+        difficulty: 'normal'
+      };
+
+      saveAndOpenLobby();
     }
+
+    function processSignUp() {
+      const username = document.getElementById('regUsername').value.trim() || 'RomeoOG';
+      
+      activeUser = {
+        username: username,
+        balance: 50.00, // Account bonus $50
+        isGuest: false,
+        difficulty: 'normal'
+      };
+
+      saveAndOpenLobby();
+    }
+
+    function processGuestEntry() {
+      const guestId = Math.floor(1000 + Math.random() * 9000);
+      activeUser = {
+        username: `Guest_${guestId}`,
+        balance: 20.00, // Guest bonus $20
+        isGuest: true,
+        difficulty: 'normal'
+      };
+
+      saveAndOpenLobby();
+    }
+
+    function triggerSocialAuth(platform) {
+      const username = `${platform}_Player`;
+      activeUser = {
+        username: username,
+        balance: 50.00,
+        isGuest: false,
+        difficulty: 'normal'
+      };
+      saveAndOpenLobby();
+    }
+
+    function triggerGoogleSignIn() {
+      triggerSocialAuth('Google');
+    }
+
+    function saveAndOpenLobby() {
+      localStorage.setItem('cybernova_user_name', activeUser.username);
+      localStorage.setItem('cybernova_user_chips', activeUser.balance.toFixed(2));
+      localStorage.setItem('cyberNova_currentUser', JSON.stringify(activeUser));
+
+      document.getElementById('authView').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'block';
+
+      document.getElementById('lobbyUserName').innerText = activeUser.username + (activeUser.isGuest ? ' (Guest)' : '');
+      document.getElementById('lobbyBankroll').innerText = `$${activeUser.balance.toFixed(2)}`;
+    }
+
+    function selectTable(stakeVal, elem) {
+      if (activeUser.balance < stakeVal) {
+        alert(`Insufficient bankroll! You need at least $${stakeVal}.00 to play this table.`);
+        return;
+      }
+      selectedStake = stakeVal;
+      document.querySelectorAll('.table-card').forEach(c => c.classList.remove('selected'));
+      elem.classList.add('selected');
+    }
+
+    function enterGameTable() {
+      localStorage.setItem('cybernova_selected_stake', selectedStake);
+      window.location.href = 'index.html';
+    }
+
+    // Auto-login check if already authenticated
+    window.onload = () => {
+      const rawUser = localStorage.getItem('cyberNova_currentUser');
+      if (rawUser) {
+        try {
+          activeUser = JSON.parse(rawUser);
+          document.getElementById('authView').style.display = 'none';
+          document.getElementById('lobbyView').style.display = 'block';
+          document.getElementById('lobbyUserName').innerText = activeUser.username + (activeUser.isGuest ? ' (Guest)' : '');
+          document.getElementById('lobbyBankroll').innerText = `$${parseFloat(activeUser.balance).toFixed(2)}`;
+        } catch(e){}
+      }
+    };
   </script>
-
 </body>
 </html>
