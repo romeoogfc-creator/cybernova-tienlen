@@ -380,7 +380,7 @@
   <div id="socialModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-title" id="socialModalTitle">ACCOUNT VERIFICATION</div>
-      <div style="font-size:11px; color:#8a9bb8;" id="socialModalSub">Enter your account credentials to verify ownership and sign in.</div>
+      <div style="font-size:11px; color:#8a9bb8;" id="socialModalSub">Enter password for account verification (Demo Password: <b>123</b>).</div>
 
       <div class="error-alert" id="socialError"></div>
 
@@ -390,7 +390,7 @@
       </div>
       <div class="input-group">
         <label class="input-label">Account Password</label>
-        <input type="password" id="socialPasswordInput" class="input-field" placeholder="Enter password to verify...">
+        <input type="password" id="socialPasswordInput" class="input-field" placeholder="Enter password (e.g. 123)...">
       </div>
 
       <button class="btn-action btn-gold" style="margin-top:6px;" onclick="confirmSocialAuth()">VERIFY & SIGN IN</button>
@@ -444,7 +444,7 @@
         let db = JSON.parse(localStorage.getItem('cybernova_accounts_db'));
         if (!db || typeof db !== 'object') db = {};
 
-        // Auto-seed default accounts
+        // Seed default accounts
         if (!db['romeoog']) {
           db['romeoog'] = { username: 'RomeoOG', email: 'romeogfc@gmail.com', password: '123', balance: 50.00 };
           db['romeogfc@gmail.com'] = db['romeoog'];
@@ -452,6 +452,16 @@
         if (!db['romeo_gamer']) {
           db['romeo_gamer'] = { username: 'Romeo_Gamer', email: 'romeogamer@gmail.com', password: '123', balance: 50.00 };
         }
+        if (!db['discord_player#1082']) {
+          db['discord_player#1082'] = { username: 'Discord_Player#1082', password: '123', balance: 50.00 };
+        }
+        if (!db['twitch_gamer']) {
+          db['twitch_gamer'] = { username: 'Twitch_Gamer', password: '123', balance: 50.00 };
+        }
+        if (!db['steam_proplayer']) {
+          db['steam_proplayer'] = { username: 'Steam_ProPlayer', password: '123', balance: 50.00 };
+        }
+
         localStorage.setItem('cybernova_accounts_db', JSON.stringify(db));
         return db;
       } catch(e) { return {}; }
@@ -597,12 +607,12 @@
       saveAndOpenLobby();
     }
 
-    /* STRICT SOCIAL ACCOUNT VERIFICATION (REQUIRES PASSWORD) */
+    /* STRICT SOCIAL ACCOUNT VERIFICATION */
     function openSocialModal(provider, defaultHandle) {
       currentProvider = provider;
       document.getElementById('socialError').style.display = 'none';
       document.getElementById('socialModalTitle').innerText = `${provider.toUpperCase()} VERIFICATION`;
-      document.getElementById('socialModalSub').innerText = `Enter password for ${defaultHandle} to verify account ownership.`;
+      document.getElementById('socialModalSub').innerText = `Enter password for ${defaultHandle} (Demo Password: 123).`;
       document.getElementById('socialFieldLabel').innerText = `${provider} Username / Email`;
       document.getElementById('socialHandleInput').value = defaultHandle;
       document.getElementById('socialPasswordInput').value = '';
@@ -646,7 +656,7 @@
         }
       }
 
-      // If registering new social account, require password setting
+      // If registering new handle, save with provided password
       const cleanName = handle.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
       const newAcc = {
         username: cleanName,
