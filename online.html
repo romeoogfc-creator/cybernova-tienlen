@@ -417,8 +417,8 @@
     .settings h3 { font-size: 11px; color: #ffd700; text-transform: uppercase; margin-bottom: 4px; }
     #toast { position: fixed; left: 50%; bottom: calc(18px + var(--safe-b)); transform: translateX(-50%); background: #7a1520; border: 1px solid #ff5e5e; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 12px; font-weight: 800; z-index: 20000; display: none; max-width: 90vw; text-align: center; }
     #conn-banner { position: fixed; top: 0; left: 0; right: 0; background: #b9770e; color: #fff; font-size: 12px; font-weight: 800; text-align: center; padding: calc(6px + var(--safe-t)) 8px 6px; z-index: 20000; display: none; }
-    #profileModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
-    #profileModal .panel { max-width: 380px; }
+    #out-of-chips { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 60; background: #7a1520; border: 1px solid #ff5e5e; border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 800; color: #fff; display: none; text-align: center; max-width: 92%; }
+    #out-of-chips button { margin-left: 8px; background: #ffd700; color: #000; border: none; border-radius: 6px; padding: 6px 10px; font-weight: 900; cursor: pointer; font-size: 11px; min-height: 32px; }
     .field { text-align: left; margin-top: 10px; }
     .field label { font-size: 10px; font-weight: 800; color: #ffd700; text-transform: uppercase; display: block; margin-bottom: 4px; }
     .field input[type=text] { width: 100%; background: #0d121d; border: 1.5px solid #2a3850; color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 14px; outline: none; user-select: text; -webkit-user-select: text; }
@@ -433,6 +433,244 @@
   </style>
 </head>
 <body>
+  <script>
+/* CyberNova account: one login, one balance, one Profile window for every page (sign-in, single player, online tables).
+   Pages use the global  CN  object. The Firebase web settings below are public by design (they only name the project). */
+(function () {
+  'use strict';
+  var CFG = {
+    apiKey: "AIzaSyC4jE1O5QFqkvTnd41d8EvqfIPUxV3SX-c",
+    authDomain: "cybernova-9dd4b.firebaseapp.com",
+    projectId: "cybernova-9dd4b",
+    storageBucket: "cybernova-9dd4b.firebasestorage.app",
+    messagingSenderId: "313524899359",
+    appId: "1:313524899359:web:f56a87cdbb083202d3cf2a"
+  };
+  function st(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+  var API = (function () {
+    var q = new URLSearchParams(location.search).get('server') || st('cybernova_test_server');
+    if (q && /^wss?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(q)) return q.replace(/^ws/, 'http');   // only for testing on your own PC
+    return 'https://cybernova-online.romeo-games.workers.dev';
+  })();
+  var FB_BASE = 'https://www.gstatic.com/firebasejs/10.12.2/';
+
+  var CN = window.CN = {};
+  var fbp = null, fbv = null, account = null, listeners = [];
+
+  function el(tag, attrs, text) { var e = document.createElement(tag); if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; }
+
+  // ------------------------------------------------------------------ Firebase (loaded only when needed)
+  function loadFirebase() {
+    if (fbp) return fbp;
+    fbp = (async function () {
+      var a = await import(FB_BASE + 'firebase-app.js'), m = await import(FB_BASE + 'firebase-auth.js');
+      var app = a.initializeApp(CFG), auth = m.getAuth(app);
+      await new Promise(function (res) { var done = false; m.onAuthStateChanged(auth, function () { if (!done) { done = true; res(); } }); });   // wait until a saved login is restored
+      fbv = { auth: auth, m: m };
+      return fbv;
+    })();
+    fbp.catch(function () { fbp = null; });
+    return fbp;
+  }
+  CN.init = function () { return loadFirebase().then(function () { return true; }); };
+  CN.user = function () { return fbv ? fbv.auth.currentUser : null; };
+
+  // ------------------------------------------------------------------ the server
+  CN.token = async function (force) { var f = await loadFirebase(), u = f.auth.currentUser; if (!u) throw new Error('not signed in'); return u.getIdToken(!!force); };
+  CN.call = async function (path, body) {
+    var t = await CN.token();
+    var r = await fetch(API + '/api/account/' + path, { method: 'POST', headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + t }, body: JSON.stringify(body || {}) });
+    var j = await r.json().catch(function () { return {}; });
+    return { status: r.status, j: j };
+  };
+  function setAccount(a) { if (!a) return; account = a; st('cybernova_user_chips', Number(a.balance).toFixed(2)); st('cybernova_user_name', a.name); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
+  CN.account = function () { return account; };
+  // the online table reports the live balance: keep the shared account in step (quietly, no server message)
+  CN.setBalanceQuiet = function (n) { if (account && typeof n === 'number' && isFinite(n)) { account.balance = Math.round(n * 100) / 100; st('cybernova_user_chips', account.balance.toFixed(2)); } };
+  CN.onChange = function (fn) { listeners.push(fn); };
+  CN.apiBase = API;
+  // load (or create, the first time) this person's account
+  CN.refresh = async function (hintName) {
+    try { var r = await CN.call('me', hintName ? { name: hintName } : {}); if (r.status === 200 && r.j.account) { setAccount(r.j.account); return account; } } catch (e) {}
+    return null;
+  };
+  CN.bonus = async function (kind) {
+    try { var r = await CN.call('bonus', { kind: kind }); if (r.j && r.j.account) setAccount(r.j.account); return r.j || { error: 'Could not reach the server.' }; } catch (e) { return { error: 'Could not reach the server.' }; }
+  };
+
+  // single-player results are sent to the account. If the connection is down they wait in a small queue and are sent later.
+  var QK = 'cybernova_settle_queue';
+  function readQ() { try { return JSON.parse(st(QK)) || []; } catch (e) { return []; } }
+  function writeQ(q) { st(QK, JSON.stringify(q.slice(-30))); }
+  var flushing = false;
+  CN.flush = async function () {
+    if (flushing) return null; flushing = true; var last = null;
+    try {
+      var q = readQ();
+      for (var i = 0; i < q.length; i++) {
+        var it = q[i], r;
+        try { r = await CN.call('settle', it); } catch (e) { break; }                  // offline: keep it for later
+        if (r.status === 429) { await new Promise(function (res) { setTimeout(res, 4200); }); i--; continue; }
+        if (r.j && r.j.account) { setAccount(r.j.account); last = account; }
+        q = readQ().filter(function (x) { return x.nonce !== it.nonce; }); writeQ(q);   // done, or refused for good (not possible / bad)
+      }
+    } finally { flushing = false; }
+    return last;
+  };
+  CN.settle = async function (delta, stake) {
+    var nonce = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    var q = readQ(); q.push({ delta: Math.round(delta * 100) / 100, stake: stake, nonce: nonce }); writeQ(q);
+    return CN.flush();
+  };
+
+  // ------------------------------------------------------------------ signing in and out
+  var MSG = {
+    'auth/invalid-credential': 'Wrong email or password.', 'auth/wrong-password': 'Wrong email or password.', 'auth/user-not-found': 'Wrong email or password.',
+    'auth/invalid-email': 'That email address does not look right.', 'auth/email-already-in-use': 'That email already has an account. Sign in, or use "Forgot password".',
+    'auth/weak-password': 'Please use a password with at least 6 characters.', 'auth/too-many-requests': 'Too many tries. Please wait a few minutes and try again.',
+    'auth/network-request-failed': 'No connection. Please check your internet and try again.', 'auth/popup-closed-by-user': 'Google sign-in was cancelled. Tap Continue with Google to try again.',
+    'auth/cancelled-popup-request': 'Google sign-in was cancelled. Tap Continue with Google to try again.', 'auth/popup-blocked': 'Your browser blocked the Google window. Allow pop-ups for this page and try again.',
+    'auth/unauthorized-domain': 'This website address is not allowed yet. (The owner must add it in Firebase.)', 'auth/operation-not-allowed': 'This sign-in method is not switched on yet. (The owner must turn it on in Firebase.)',
+    'auth/requires-recent-login': 'For your safety, please sign out, sign in again, and then retry.', 'auth/missing-password': 'Please type your password.', 'auth/user-disabled': 'This account has been disabled.',
+    'auth/email-change-needs-verification': 'Please confirm the new address from the email we sent.'
+  };
+  CN.errorText = function (e) { var c = (e && e.code) || ''; return MSG[c] || ('Something went wrong (' + (c || (e && e.message) || 'error') + '). Please try again.'); };
+  CN.signInGoogle = async function () { var f = await loadFirebase(); await f.m.signInWithPopup(f.auth, new f.m.GoogleAuthProvider()); return CN.refresh(); };
+  CN.signInEmail = async function (email, pw) { var f = await loadFirebase(); await f.m.signInWithEmailAndPassword(f.auth, email, pw); return CN.refresh(); };
+  CN.signUpEmail = async function (email, pw, name) {
+    var f = await loadFirebase(); var cred = await f.m.createUserWithEmailAndPassword(f.auth, email, pw);
+    try { await f.m.updateProfile(cred.user, { displayName: name }); } catch (e) {}
+    try { f.m.sendEmailVerification(cred.user); } catch (e) {}
+    return CN.refresh(name);
+  };
+  CN.resetPassword = async function (email) { var f = await loadFirebase(); await f.m.sendPasswordResetEmail(f.auth, email); };
+  CN.signOut = async function () { try { var f = await loadFirebase(); await f.m.signOut(f.auth); } catch (e) {} account = null; st('cybernova_user_chips', ''); try { localStorage.removeItem('cyberNova_currentUser'); } catch (e) {} };
+  CN.hasPassword = function () { var u = CN.user(); return !!(u && u.providerData && u.providerData.some(function (p) { return p.providerId === 'password'; })); };
+  // pages that need a real account send people to the sign-in page
+  CN.requireSignIn = async function () { await CN.init(); if (!CN.user()) { location.href = 'register.html'; return false; } return true; };
+
+  // ------------------------------------------------------------------ the one Profile window
+  var css = '#cnp-overlay{position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100001;padding:10px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
+    '#cnp-overlay.open{display:flex}#cnp-box{background:#11141c;border:2px solid #d4af37;border-radius:16px;width:100%;max-width:440px;max-height:92vh;max-height:92dvh;overflow-y:auto;padding:16px;color:#e8eefc;box-shadow:0 0 35px rgba(212,175,55,.35);user-select:text;-webkit-user-select:text}' +
+    '#cnp-box h2{margin:0 0 4px;font-size:16px;font-weight:900;color:#ffd700;letter-spacing:1px}#cnp-box h3{margin:16px 0 6px;font-size:12px;font-weight:900;color:#ffd700;text-transform:uppercase}' +
+    '.cnp-row{display:flex;align-items:center;gap:12px}.cnp-av{width:64px;height:64px;border-radius:50%;border:2px solid #d4af37;object-fit:cover;background:#1a233a;flex:0 0 auto}' +
+    '#cnp-box label{display:block;font-size:11px;font-weight:800;color:#b8c4de;margin:10px 0 4px}#cnp-box input[type=text],#cnp-box input[type=password],#cnp-box input[type=email]{width:100%;background:#0d121d;border:1.5px solid #2a3850;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;user-select:text;-webkit-user-select:text}' +
+    '#cnp-box input:focus{border-color:#ffd700}.cnp-btn{background:#1e2638;border:1px solid #4a5a78;color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;min-height:40px}' +
+    '.cnp-btn.gold{background:linear-gradient(135deg,#ffd700,#d4af37);color:#000;border-color:#d4af37}.cnp-btn.red{background:#7a1520;border-color:#ff5e5e}.cnp-btn:disabled{opacity:.5;cursor:not-allowed}' +
+    '.cnp-msg{font-size:12px;font-weight:700;padding:8px 10px;border-radius:8px;margin-top:8px}.cnp-msg.err{background:rgba(231,76,60,.15);border:1px solid #e74c3c;color:#ff9a9a}.cnp-msg.ok{background:rgba(46,204,113,.14);border:1px solid #2ecc71;color:#8dffd2}' +
+    '.cnp-note{font-size:11px;color:#8a9bb8;line-height:1.5;margin-top:6px}.cnp-sec{border-top:1px solid #232f48;margin-top:10px}';
+  var sEl = document.createElement('style'); sEl.textContent = css; document.head.appendChild(sEl);
+
+  var ov = null, box = null, pending = null;
+  function msg(node, kind, text) { node.textContent = ''; node.className = text ? 'cnp-msg ' + kind : ''; if (text) node.textContent = text; }
+  function resizePicture(file, cb, fail) {
+    if (!/^image\//.test(file.type)) { fail('Please choose a picture file.'); return; }
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function () {
+      var S = 96, cv = document.createElement('canvas'); cv.width = cv.height = S; var g = cv.getContext('2d');
+      var m = Math.min(img.width, img.height), sx = (img.width - m) / 2, sy = (img.height - m) / 2;
+      g.drawImage(img, sx, sy, m, m, 0, 0, S, S); URL.revokeObjectURL(url);
+      var q = 0.8, data = cv.toDataURL('image/jpeg', q);
+      while (data.length > 11000 && q > 0.2) { q -= 0.1; data = cv.toDataURL('image/jpeg', q); }
+      if (data.length > 11500) fail('That picture is too detailed. Try a simpler one.'); else cb(data);
+    };
+    img.onerror = function () { fail('Could not read that picture.'); };
+    img.src = url;
+  }
+
+  CN.openProfile = function () {
+    var u = CN.user(), a = account;
+    if (!u || !a) { location.href = 'register.html'; return; }
+    if (!ov) { ov = el('div', { id: 'cnp-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Profile' }); box = el('div', { id: 'cnp-box' }); ov.appendChild(box); ov.addEventListener('mousedown', function (e) { if (e.target === ov) CN.closeProfile(); }); document.body.appendChild(ov); }
+    pending = a.avatar || '';
+    box.textContent = '';
+    box.appendChild(el('h2', null, 'YOUR PROFILE'));
+    box.appendChild(el('div', { 'class': 'cnp-note' }, 'Signed in as ' + (a.email || 'your account') + '  ·  Balance $' + Number(a.balance).toFixed(2) + '. This is the same account and the same money on every page.'));
+    var row = el('div', { 'class': 'cnp-row', style: 'margin-top:12px' });
+    var av = el('img', { 'class': 'cnp-av', alt: '' }); av.src = a.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23d4af37'/><text x='50' y='64' font-size='46' text-anchor='middle'>👤</text></svg>"; row.appendChild(av);
+    var col = el('div', { style: 'flex:1;min-width:0' }); var file = el('input', { type: 'file', accept: 'image/*', style: 'font-size:12px;color:#dfe8f7;width:100%' }); col.appendChild(file);
+    var rm = el('button', { type: 'button', 'class': 'cnp-btn', style: 'margin-top:6px' }, 'Remove picture'); col.appendChild(rm); row.appendChild(col); box.appendChild(row);
+    box.appendChild(el('label', { 'for': 'cnp-name' }, 'Display name (up to 16 characters)'));
+    var nm = el('input', { type: 'text', id: 'cnp-name', maxlength: '16', autocomplete: 'off' }); nm.value = a.name; box.appendChild(nm);
+    var m1 = el('div'); box.appendChild(m1);
+    var save = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin-top:10px' }, 'SAVE NAME & PICTURE'); box.appendChild(save);
+    file.onchange = function () { var f = file.files && file.files[0]; if (f) resizePicture(f, function (d) { pending = d; av.src = d; msg(m1, '', ''); }, function (t) { msg(m1, 'err', t); }); };
+    rm.onclick = function () { pending = ''; av.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23d4af37'/></svg>"; };
+    save.onclick = async function () {
+      var name = nm.value.replace(/[\u0000-\u001f<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+      if (!name) { msg(m1, 'err', 'Please type a display name.'); return; }
+      save.disabled = true;
+      try { var r = await CN.call('profile', { name: name, avatar: pending }); if (r.status === 200 && r.j.account) { setAccount(r.j.account); msg(m1, 'ok', 'Saved.'); } else msg(m1, 'err', (r.j && r.j.error) || 'Could not save. Please try again.'); }
+      catch (e) { msg(m1, 'err', 'Could not reach the server. Please try again.'); }
+      save.disabled = false;
+    };
+
+    if (CN.hasPassword()) {
+      box.appendChild(el('div', { 'class': 'cnp-sec' }));
+      box.appendChild(el('h3', null, 'Change password'));
+      box.appendChild(el('label', { 'for': 'cnp-cur' }, 'Current password')); var cur = el('input', { type: 'password', id: 'cnp-cur', autocomplete: 'current-password' }); box.appendChild(cur);
+      box.appendChild(el('label', { 'for': 'cnp-new' }, 'New password (at least 6 characters)')); var nw = el('input', { type: 'password', id: 'cnp-new', autocomplete: 'new-password' }); box.appendChild(nw);
+      var m2 = el('div'); box.appendChild(m2);
+      var b2 = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, 'CHANGE PASSWORD'); box.appendChild(b2);
+      b2.onclick = async function () {
+        if (nw.value.length < 6) { msg(m2, 'err', MSG['auth/weak-password']); return; }
+        b2.disabled = true;
+        try { var f = await loadFirebase(); await f.m.reauthenticateWithCredential(u, f.m.EmailAuthProvider.credential(u.email, cur.value)); await f.m.updatePassword(u, nw.value); cur.value = ''; nw.value = ''; msg(m2, 'ok', 'Password changed.'); }
+        catch (e) { msg(m2, 'err', CN.errorText(e)); }
+        b2.disabled = false;
+      };
+      box.appendChild(el('h3', null, 'Change email'));
+      box.appendChild(el('label', { 'for': 'cnp-mail' }, 'New email address')); var mail = el('input', { type: 'email', id: 'cnp-mail', autocomplete: 'off' }); box.appendChild(mail);
+      box.appendChild(el('label', { 'for': 'cnp-mpw' }, 'Your current password')); var mpw = el('input', { type: 'password', id: 'cnp-mpw', autocomplete: 'current-password' }); box.appendChild(mpw);
+      var m3 = el('div'); box.appendChild(m3);
+      var b3 = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, 'SEND CONFIRMATION TO NEW EMAIL'); box.appendChild(b3);
+      box.appendChild(el('div', { 'class': 'cnp-note' }, 'We email the new address. Your email changes after you click the link in that message.'));
+      b3.onclick = async function () {
+        var ne = mail.value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)) { msg(m3, 'err', MSG['auth/invalid-email']); return; }
+        b3.disabled = true;
+        try { var f = await loadFirebase(); await f.m.reauthenticateWithCredential(u, f.m.EmailAuthProvider.credential(u.email, mpw.value)); await f.m.verifyBeforeUpdateEmail(u, ne); mpw.value = ''; msg(m3, 'ok', 'Check ' + ne + ' and click the link to finish.'); }
+        catch (e) { msg(m3, 'err', CN.errorText(e)); }
+        b3.disabled = false;
+      };
+    } else {
+      box.appendChild(el('div', { 'class': 'cnp-note', style: 'margin-top:14px' }, 'You signed in with Google, so your email and password are managed by your Google account.'));
+    }
+    box.appendChild(el('div', { 'class': 'cnp-sec', style: 'margin-top:16px' }));
+    var rowb = el('div', { 'class': 'cnp-row', style: 'margin-top:12px' });
+    var out = el('button', { type: 'button', 'class': 'cnp-btn red', style: 'flex:1' }, 'SIGN OUT'); var close = el('button', { type: 'button', 'class': 'cnp-btn', style: 'flex:1' }, 'CLOSE');
+    rowb.appendChild(out); rowb.appendChild(close); box.appendChild(rowb);
+    out.onclick = async function () { await CN.signOut(); location.href = 'register.html'; };
+    close.onclick = CN.closeProfile;
+    ov.classList.add('open');
+  };
+  CN.closeProfile = function () { if (ov) ov.classList.remove('open'); };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') CN.closeProfile(); });
+
+  // ------------------------------------------------------------------ a small "get free chips" window (used when you are out of chips)
+  var rov = null;
+  CN.openRefill = function (onDone) {
+    if (!rov) { rov = el('div', { id: 'cnp-overlay2', style: 'position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100002;padding:10px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif' }); document.body.appendChild(rov); }
+    var a = account || { balance: 0, bonus: {} };
+    rov.textContent = '';
+    var b = el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:14px;width:100%;max-width:360px;padding:18px;text-align:center;color:#e8eefc' });
+    b.appendChild(el('div', { style: 'font-size:18px;font-weight:900;color:#ffd700;margin-bottom:6px' }, 'OUT OF CHIPS?'));
+    b.appendChild(el('div', { style: 'font-size:12px;color:#b0c4de;margin-bottom:12px' }, 'Your balance is $' + Number(a.balance).toFixed(2) + '. Free chips go straight into your account.'));
+    var msgBox = el('div');
+    function line(kind, label) {
+      var info = (a.bonus || {})[kind] || {}, btn = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin:5px 0;min-height:44px' }, label);
+      var wait = info.readyAt && info.readyAt > Date.now() ? Math.ceil((info.readyAt - Date.now()) / 60000) : 0;
+      if (wait) { btn.disabled = true; btn.textContent = label + ' · ready in ' + (wait >= 60 ? Math.floor(wait / 60) + ' h ' + (wait % 60) + ' min' : wait + ' min'); }
+      else if (info.eligible === false) { btn.disabled = true; btn.textContent = label + ' · when under $' + (kind === '4h' ? 50 : 10); }
+      btn.onclick = async function () { btn.disabled = true; var r = await CN.bonus(kind); if (r.ok) { rov.style.display = 'none'; if (onDone) onDone(r.account); } else { msg(msgBox, 'err', r.error || 'Not available right now.'); btn.disabled = false; } };
+      b.appendChild(btn);
+    }
+    line('quick', '🎁 Free refill  +$20'); line('4h', '⏳ 4-hour bonus  +$50');
+    b.appendChild(msgBox);
+    var c = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, 'CLOSE'); c.onclick = function () { rov.style.display = 'none'; }; b.appendChild(c);
+    rov.appendChild(b); rov.style.display = 'flex';
+  };
+})();
+  </script>
   <script>
 /* CyberNova: Help & Feedback window. One file shared by register.html, index.html and online.html.
    Call  openHelp()  (How to play)  or  openHelp('feedback')  from any button. */
@@ -651,20 +889,27 @@
     <div class="panel">
       <h1>CYBER NOVA</h1>
       <div class="sub">Tiến Lên Miền Nam · Play with people</div>
-      <div class="me-row">
-        <img id="home-av" alt="">
-        <div style="flex:1; min-width:0;"><div class="nm" id="home-name">Player</div><div class="hint">Your name and picture at the table</div></div>
-        <button class="mini" onclick="openProfile()">EDIT</button>
+      <div id="home-loading" class="msg info" style="display:block">Loading your account…</div>
+      <div id="home-signin" style="display:none">
+        <div class="msg info" style="display:block">Online tables use your account, so your chips are saved and the same everywhere. Sign in or create a free account to play.</div>
+        <button class="big-btn big-gold" onclick="location.href='register.html'">SIGN IN / CREATE ACCOUNT</button>
       </div>
-      <button class="big-btn big-gold" onclick="createTable(false)">CREATE A TABLE</button>
-      <button class="big-btn big-green" onclick="createTable(true)">QUICK GAME vs BOTS</button>
-      <div class="divider-t"><span>OR JOIN A FRIEND'S TABLE</span></div>
-      <div class="code-row">
-        <input id="join-code" maxlength="8" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')joinByCode()">
-        <button class="big-btn big-dark" onclick="joinByCode()">JOIN</button>
+      <div id="home-account" style="display:none">
+        <div class="me-row">
+          <img id="home-av" alt="">
+          <div style="flex:1; min-width:0;"><div class="nm" id="home-name">Player</div><div class="hint">Balance <b id="home-bal" style="color:#00ffcc">$0</b> · same on every page</div></div>
+          <button class="mini" onclick="CN.openProfile()">PROFILE</button>
+        </div>
+        <button class="big-btn big-gold" onclick="createTable(false)">CREATE A TABLE</button>
+        <button class="big-btn big-green" onclick="createTable(true)">QUICK GAME vs BOTS</button>
+        <div class="divider-t"><span>OR JOIN A FRIEND'S TABLE</span></div>
+        <div class="code-row">
+          <input id="join-code" maxlength="8" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')joinByCode()">
+          <button class="big-btn big-dark" onclick="joinByCode()">JOIN</button>
+        </div>
       </div>
       <div class="msg" id="home-msg"></div>
-      <a class="tiny-link" href="index.html">← Back to single player</a><br>
+      <a class="tiny-link" href="register.html">← Back to the lobby</a><br>
       <a class="tiny-link" onclick="openHelp()">❓ How to play · Help &amp; feedback</a>
     </div>
   </div>
@@ -702,7 +947,7 @@
         <button class="btn-hdr hdr-menu-toggle" id="btn-menu" aria-label="Menu" onclick="toggleHdrMenu(event)">☰</button>
         <div class="hdr-menu" id="hdr-menu">
           <button class="btn-hdr active-toggle" id="btn-sfx" onclick="toggleSFX()">🔊 SFX: ON</button>
-          <button class="btn-hdr" onclick="openProfile()">👤 PROFILE</button>
+          <button class="btn-hdr" onclick="CN.openProfile()">👤 PROFILE</button>
           <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
           <button class="btn-hdr" onclick="copyInvite()">📋 INVITE LINK</button>
           <button class="btn-hdr" onclick="openHelp()">💬 HELP</button>
@@ -713,6 +958,7 @@
 
     <div id="table-viewport" class="theme-red">
       <div id="combo-banner">💥 CHOP! 💥</div>
+      <div id="out-of-chips">You are out of chips for this table, so a bot plays your cards. <button onclick="getChips()">GET FREE CHIPS</button></div>
       <div id="center-field">
         <div id="status-msg">WAITING…</div>
         <div id="played-cards-area"></div>
@@ -773,25 +1019,6 @@
         <button class="btn-res btn-res-exit" onclick="leaveTable()">LEAVE</button>
         <button class="btn-res btn-res-new" id="btn-ready" onclick="sendMsg({t:'ready'}); this.disabled = true;">READY</button>
       </div>
-    </div>
-  </div>
-
-  <!-- PROFILE -->
-  <div id="profileModal">
-    <div class="panel">
-      <h1 style="font-size:18px">YOUR PROFILE</h1>
-      <div class="field avatar-pick">
-        <img id="pf-av" class="seat-av" alt="">
-        <div style="flex:1">
-          <label>Picture</label>
-          <input type="file" id="pf-file" accept="image/*" onchange="pickAvatar(this)" style="font-size:12px; color:#dfe8f7; width:100%">
-          <button class="mini" style="margin-top:6px" onclick="clearAvatar()">REMOVE PICTURE</button>
-        </div>
-      </div>
-      <div class="field"><label>Display name (up to 16 characters)</label><input type="text" id="pf-name" maxlength="16" autocomplete="off"></div>
-      <div class="msg" id="pf-msg"></div>
-      <button class="big-btn big-gold" onclick="saveProfile()">SAVE</button>
-      <button class="big-btn big-dark" onclick="closeProfile()">CANCEL</button>
     </div>
   </div>
 
@@ -1259,7 +1486,7 @@
     //  CONFIG
     // =====================================================================================================
     const SERVER = (() => {
-      const p = new URLSearchParams(location.search).get('server');
+      const p = new URLSearchParams(location.search).get('server') || store('cybernova_test_server');
       if (p && /^wss?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(p)) return p;          // only for testing on your own PC
       return 'wss://cybernova-online.romeo-games.workers.dev';
     })();
@@ -1276,51 +1503,19 @@
     function toast(msg) { const t = $('toast'); t.innerText = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3500); }
     function randToken() { const a = new Uint8Array(24); crypto.getRandomValues(a); return Array.from(a, b => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join(''); }
 
-    const TOKEN = (() => { let t = store('cybernova_online_token'); if (!t || !/^[A-Za-z0-9_-]{16,64}$/.test(t)) { t = randToken(); store('cybernova_online_token', t); } return t; })();
-
-    // =====================================================================================================
-    //  PROFILE (name and picture)
-    // =====================================================================================================
+    // the name, picture and balance come from the player's one account (managed in CN.openProfile)
     const FALLBACK_AV = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23d4af37'/><text x='50' y='64' font-size='46' text-anchor='middle'>👤</text></svg>";
-    let profile = (() => {
-      let name = store('cybernova_online_name'), avatar = store('cybernova_online_avatar') || '';
-      if (!name) { try { const u = JSON.parse(store('cyberNova_currentUser')); if (u && u.username) name = u.username; if (u && u.avatar && /^https:\/\//.test(u.avatar)) avatar = u.avatar; } catch (e) {} }
-      return { name: (name || ('Player' + (100 + Math.floor(Math.random() * 900)))).slice(0, 16), avatar };
-    })();
     function avatarSrc(a) { return a || FALLBACK_AV; }
     function renderProfileBits() {
-      $('home-name').innerText = profile.name; $('home-av').src = avatarSrc(profile.avatar);
-      $('hdr-user-name').innerText = profile.name; $('hdr-avatar').src = avatarSrc(profile.avatar);
+      const a = CN.account(); if (!a) return;
+      $('home-name').innerText = a.name; $('home-av').src = avatarSrc(a.avatar); $('home-bal').innerText = money(a.balance);
+      $('hdr-user-name').innerText = a.name; $('hdr-avatar').src = avatarSrc(a.avatar);
     }
-    let pendingAvatar = null;
-    function openProfile() { pendingAvatar = profile.avatar; $('pf-name').value = profile.name; $('pf-av').src = avatarSrc(profile.avatar); $('pf-msg').className = 'msg'; $('pf-file').value = ''; $('profileModal').style.display = 'flex'; $('hdr-menu').classList.toggle('open', false); }
-    function closeProfile() { $('profileModal').style.display = 'none'; }
-    function clearAvatar() { pendingAvatar = ''; $('pf-av').src = FALLBACK_AV; }
-    function pickAvatar(inp) {
-      const f = inp.files && inp.files[0]; const msg = $('pf-msg');
-      if (!f) return;
-      if (!/^image\//.test(f.type)) { msg.className = 'msg err'; msg.innerText = 'Please choose a picture file.'; return; }
-      const img = new Image(); const url = URL.createObjectURL(f);
-      img.onload = () => {
-        const S = 96, cv = document.createElement('canvas'); cv.width = cv.height = S; const g = cv.getContext('2d');
-        const m = Math.min(img.width, img.height), sx = (img.width - m) / 2, sy = (img.height - m) / 2;   // centre square
-        g.drawImage(img, sx, sy, m, m, 0, 0, S, S); URL.revokeObjectURL(url);
-        let q = 0.8, data = cv.toDataURL('image/jpeg', q);
-        while (data.length > 11000 && q > 0.2) { q -= 0.1; data = cv.toDataURL('image/jpeg', q); }
-        if (data.length > 11500) { msg.className = 'msg err'; msg.innerText = 'That picture is too detailed. Try a simpler one.'; return; }
-        pendingAvatar = data; $('pf-av').src = data; msg.className = 'msg';
-      };
-      img.onerror = () => { msg.className = 'msg err'; msg.innerText = 'Could not read that picture.'; };
-      img.src = url;
-    }
-    function saveProfile() {
-      const name = $('pf-name').value.replace(/[\u0000-\u001f<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
-      if (!name) { const m = $('pf-msg'); m.className = 'msg err'; m.innerText = 'Please type a display name.'; return; }
-      profile = { name, avatar: pendingAvatar || '' };
-      store('cybernova_online_name', profile.name); store('cybernova_online_avatar', profile.avatar);
-      renderProfileBits(); closeProfile();
-      if (ws && ws.readyState === 1) sendMsg({ t: 'profile', name: profile.name, avatar: profile.avatar });
-    }
+    CN.onChange(a => {
+      renderProfileBits();
+      if (ws && ws.readyState === 1) sendMsg({ t: 'profile' });                      // tell the table about the new name or picture
+    });
+    function getChips() { CN.openRefill(() => { sendMsg({ t: 'refresh' }); }); }
 
     // =====================================================================================================
     //  CONNECTION
@@ -1349,7 +1544,8 @@
     }
 
     let wantQuick = false;
-    function connect(code, quick) {
+    async function connect(code, quick) {
+      if (!CN.user()) { backHome('Please sign in first.'); return; }
       wantQuick = !!quick; tableCode = code; intentionalClose = false; retry = 0; joined = false; snap = null;
       store('cybernova_online_table', code);
       openSocket();
@@ -1358,9 +1554,11 @@
       clearTimeout(retryTimer);
       try { if (ws) { ws.onclose = null; ws.close(); } } catch (e) {}
       ws = new WebSocket(SERVER + '/ws/' + tableCode);
-      ws.onopen = () => {
+      ws.onopen = async () => {
         retry = 0; $('conn-banner').style.display = 'none';
-        ws.send(JSON.stringify({ t: 'hello', token: TOKEN, name: profile.name, avatar: profile.avatar }));
+        let tok = ''; try { tok = await CN.token(); } catch (e) {}
+        if (!tok) { backHome('Please sign in again.'); return; }
+        ws.send(JSON.stringify({ t: 'hello', idToken: tok }));
         clearInterval(pingTimer); pingTimer = setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); }, 40000);
       };
       ws.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } onServer(m); };
@@ -1369,6 +1567,7 @@
         if (intentionalClose) return;
         if (ev.code === 4001) { backHome('That table is full.'); return; }
         if (ev.code === 4000) { backHome('This table was opened in another window or tab.'); return; }
+        if (ev.code === 4003 || ev.code === 4002) { backHome(ev.code === 4003 ? 'Please sign in again.' : 'Could not load your account. Please try again.'); return; }
         if (ev.code === 1000) { backHome(joined ? 'The table was closed.' : ''); return; }
         if (!joined && retry >= 3) { backHome('Could not connect to that table. Check the code and try again.'); return; }
         $('conn-banner').style.display = 'block';
@@ -1494,6 +1693,8 @@
       showView('table'); renderProfileBits();
       $('hdr-stake-badge').innerText = 'TABLE $' + room.settings.stake;
       const youI = me(); $('player-cash').innerText = youI >= 0 && room.seats[youI] ? money(room.seats[youI].chips) : '';
+      if (youI >= 0 && room.seats[youI]) { CN.setBalanceQuiet(room.seats[youI].chips); renderProfileBits(); }
+      $('out-of-chips').style.display = (youI >= 0 && room.seats[youI] && room.seats[youI].sitOut && g && g.gameActive) ? 'block' : 'none';
 
       POS.forEach(rel => {
         const i = seatAt(rel), s = room.seats[i], p = g ? g.players[i] : null;
@@ -1594,7 +1795,7 @@
         html += `<div class="row"><span>Stake per hand</span><span class="ro">$${st.stake}</span></div><div class="row"><span>Bots play as</span><span class="ro">${({ easy: 'Easy', normal: 'Normal', hard: 'Hard' })[st.botLevel] || 'Normal'}</span></div><div class="row"><span>Fill empty seats with bots</span><span class="ro">${st.fillBots ? 'Yes' : 'No'}</span></div>`;
         ruleDefs.forEach(([k, label]) => { html += `<div class="row"><span>${label}</span><span class="ro">${R[k] ? 'On' : 'Off'}</span></div>`; });
       }
-      html += '<div class="rule-note" style="margin-top:6px">Chips at this table are play money. Everyone starts with $' + st.buyIn + ' and is topped up automatically.</div>';
+      html += '<div class="rule-note" style="margin-top:6px">Everyone plays with their own account balance, the same money as everywhere else. Chips are play money with no cash value. Anyone without enough chips for the stake sits a hand out until they get a refill.</div>';
       $('lobby-settings').innerHTML = html;
       const b = $('btn-start'); b.style.display = isHost ? '' : 'none';
       lobbyMsg('');
@@ -1617,8 +1818,12 @@
     // =====================================================================================================
     //  START
     // =====================================================================================================
-    window.addEventListener('load', () => {
-      renderProfileBits();
+    window.addEventListener('load', async () => {
+      let ok = false;
+      try { await CN.init(); if (CN.user()) ok = !!(await CN.refresh()); } catch (e) {}
+      $('home-loading').style.display = 'none';
+      if (!ok) { $('home-signin').style.display = 'block'; return; }
+      $('home-account').style.display = 'block'; renderProfileBits();
       const q = new URLSearchParams(location.search).get('table');
       if (q && /^[A-Za-z0-9]{4,8}$/.test(q)) { $('join-code').value = q.toUpperCase(); connect(q.toUpperCase(), false); return; }
       const last = store('cybernova_online_table');                    // came back to the page: rejoin the table you were at
