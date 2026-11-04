@@ -525,7 +525,7 @@
 
   // ------------------------------------------------------------------ signing in and out
   var MSG = {
-    'auth/invalid-credential': 'Wrong email or password.', 'auth/wrong-password': 'Wrong email or password.', 'auth/user-not-found': 'Wrong email or password.',
+    'auth/invalid-credential': 'Wrong email or password. If you play with Google, use Continue with Google. New here? Use Create account.', 'auth/wrong-password': 'Wrong email or password. If you play with Google, use Continue with Google.', 'auth/user-not-found': 'Wrong email or password. If you play with Google, use Continue with Google. New here? Use Create account.',
     'auth/invalid-email': 'That email address does not look right.', 'auth/email-already-in-use': 'That email already has an account. Sign in, or use "Forgot password".',
     'auth/weak-password': 'Please use a password with at least 6 characters.', 'auth/too-many-requests': 'Too many tries. Please wait a few minutes and try again.',
     'auth/network-request-failed': 'No connection. Please check your internet and try again.', 'auth/popup-closed-by-user': 'Google sign-in was cancelled. Tap Continue with Google to try again.',
@@ -1602,7 +1602,7 @@
         if (wantQuick && m.room.phase === 'lobby' && m.room.hostSeat === m.you && m.you >= 0) { wantQuick = false; sendMsg({ t: 'start' }); }
       } else if (m.t === 'error') { toast(m.error || 'Something went wrong.'); lobbyMsg(m.error || ''); }
       else if (m.t === 'replaced') { intentionalClose = true; backHome('This table was opened in another window or tab.'); }
-      else if (m.t === 'kicked') { backHome('The host removed you from the table.'); }
+      else if (m.t === 'kicked') { backHome(m.reason === 'idle' ? 'You were removed from the table because you missed 2 turns in a row. Your hand was finished by a bot. Sit down again whenever you are back.' : 'The host removed you from the table.'); }
     }
     function lobbyMsg(t) { const el = $('lobby-msg'); el.className = t ? 'msg err' : 'msg'; el.innerText = t; }
 
