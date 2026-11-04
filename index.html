@@ -210,6 +210,12 @@
     .btn-res-new { background: linear-gradient(135deg, #1b8a4f, #0d522e); color: #fff; border: 1px solid #2bf087; }
     .btn-res-exit { background: linear-gradient(135deg, #c0392b, #7b241c); color: #fff; border: 1px solid #ff5e5e; }
 
+    #rulesModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
+    .rules-box { background: #11141c; border: 2px solid #ffd700; border-radius: 14px; width: 92%; max-width: 420px; max-height: 92vh; overflow-y: auto; padding: 18px; box-shadow: 0 0 25px rgba(255,215,0,0.4); }
+    .rule-row { display: flex; gap: 10px; align-items: flex-start; background: rgba(255,255,255,0.04); border: 1px solid #25334a; border-radius: 10px; padding: 10px; margin: 8px 0; font-size: 12px; color: #dfe8f7; cursor: pointer; }
+    .rule-row input { width: 22px; height: 22px; flex: 0 0 auto; margin-top: 2px; accent-color: #d4af37; }
+    .rule-row b { color: #ffd700; }
+    .rule-note { font-size: 10px; color: #8a9bb8; line-height: 1.5; margin: 10px 0 12px; }
     @media (max-width: 768px) {
       header { padding: 0 6px; }
       .brand-title { font-size: 11px; }
@@ -259,7 +265,7 @@
     .brand-title { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     #combo-banner { width: max-content; max-width: 90%; text-align: center; font-size: clamp(14px, 4.4vw, 20px); }
-    #refillModal, #resultModal { height: 100vh; height: 100dvh; padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l); }
+    #refillModal, #resultModal, #rulesModal { height: 100vh; height: 100dvh; padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l); }
     .result-box, .refill-box { max-height: 92vh; max-height: 92dvh; overflow-y: auto; }
     @supports (-webkit-touch-callout: none) { .stake-select { font-size: 16px; } }   /* stops iPhone zooming into the dropdown */
 
@@ -387,6 +393,7 @@
         <div class="hdr-menu" id="hdr-menu">
           <button class="btn-hdr active-toggle" id="btn-sfx" onclick="toggleSFX()">🔊 SFX: ON</button>
           <button class="btn-hdr" id="btn-music" onclick="toggleMusic()">🎵 MUSIC: OFF</button>
+          <button class="btn-hdr" id="btn-rules" onclick="openRules()">⚙ HOUSE RULES</button>
           <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
           <button class="btn-hdr" onclick="logoutUser()">LOGOUT</button>
         </div>
@@ -486,6 +493,20 @@
     </div>
   </div>
 
+  <!-- HOUSE RULES MODAL -->
+  <div id="rulesModal">
+    <div class="rules-box">
+      <div class="refill-title">⚙ HOUSE RULES</div>
+      <div class="refill-desc">Every table plays a little differently. Changes apply from the next hand.</div>
+      <label class="rule-row"><input type="checkbox" id="rule-fivePairStraight" onchange="onRuleChange()"><span><b>5 đôi thông tới trắng</b><br>Five pairs in a row in your dealt hand wins instantly.</span></label>
+      <label class="rule-row"><input type="checkbox" id="rule-fourThrees" onchange="onRuleChange()"><span><b>Tứ quý 3 tới trắng</b><br>Four 3s in your dealt hand wins instantly.</span></label>
+      <label class="rule-row"><input type="checkbox" id="rule-thoiLastPlace" onchange="onRuleChange()"><span><b>Thối: last place pays</b><br>Whoever finishes last pays the winner for 2s, quads and pair-straights still in hand.</span></label>
+      <label class="rule-row"><input type="checkbox" id="rule-chopRefund" onchange="onRuleChange()"><span><b>Chặt chồng: refund the first chop</b><br>If a chop gets chopped, the first chopper gives the bounty back to the owner of the 2.</span></label>
+      <div class="rule-note">Always on: four 2s, six pairs and the dragon straight win instantly. Chop a 2 with 3 pairs in a row, a quad or 4 pairs in a row. A quad or 4 pairs in a row chops a pair of 2s. Cóng and last-place payments always add up to zero.</div>
+      <button class="btn-refill btn-ad" onclick="closeRules()">DONE</button>
+    </div>
+  </div>
+
   <!-- WSOP REFILL MODAL -->
   <div id="refillModal">
     <div class="refill-box">
@@ -513,6 +534,34 @@
     let audioCtx = null;
     let currentStake = parseFloat(localStorage.getItem('cybernova_selected_stake')) || 5;
     let currentDifficulty = 'normal';
+
+    // ---- house rules (each table in Vietnam plays a little differently): saved on this device, applied from the next hand ----
+    const HOUSE_RULE_DEFAULTS = { fivePairStraight: true, fourThrees: true, thoiLastPlace: true, chopRefund: true };
+    function loadHouseRules() {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem('cybernova_house_rules')) || {}; } catch (e) {}
+      return Object.assign({}, HOUSE_RULE_DEFAULTS, saved);
+    }
+    let HOUSE_RULES = loadHouseRules();
+    let ACTIVE_RULES = Object.assign({}, HOUSE_RULES);   // snapshot taken when a hand is dealt, so a hand never changes rules halfway
+    let instantWinThisGame = false;
+
+    // money a player owes for what is still in their hand: 2s (black x1, red x2), quads x3, 3-pair straights x2, 4-pair straights x4
+    function penaltyForHand(hand, stake) {
+      let f = 0;
+      hand.forEach(c => { if (c.rankIdx === 12) f += (c.suitIdx >= 2) ? stake * 2 : stake; });
+      const d = decomposeHand(hand);
+      f += stake * 3 * d.quads.length + stake * 2 * d.threePairs.length + stake * 4 * d.fourPairs.length;
+      return f;
+    }
+
+    function hasConsecutivePairs(hand, n) {
+      const cnt = new Array(13).fill(0);
+      hand.forEach(c => cnt[c.rankIdx]++);
+      let run = 0;
+      for (let r = 0; r < 12; r++) { run = cnt[r] >= 2 ? run + 1 : 0; if (run >= n) return true; }
+      return false;
+    }
 
     let sfxMute = false;
     let musicMute = true;
@@ -985,12 +1034,15 @@
         if (twos.length === 4) toiTrangReason = "TỨ QUÝ HEO (4 TWOS)";
         else if (decomp.pairs.length === 6) toiTrangReason = "6 ĐÔI (6 PAIRS)";
         else if (decomp.straights.some(s => s.length >= 12)) toiTrangReason = "SẢNH RỒNG (DRAGON STRAIGHT)";
+        else if (ACTIVE_RULES.fourThrees && hand.filter(c => c.rankIdx === 0).length === 4) toiTrangReason = "TỨ QUÝ 3 (FOUR 3s)";
+        else if (ACTIVE_RULES.fivePairStraight && hasConsecutivePairs(hand, 5)) toiTrangReason = "5 ĐÔI THÔNG (5 CONSECUTIVE PAIRS)";
 
         if (toiTrangReason) {
           triggerComboBanner(`👑 TỚI TRẮNG: ${toiTrangReason} 👑`);
           playSound('win1st');
           finishedRankOrder = [i];
           players[i].rank = 1;
+          instantWinThisGame = true;
           
           let winTotal = 0;
           players.forEach((p, pIdx) => {
@@ -1016,6 +1068,8 @@
       syncUserSession();
       if (players[0].cash < currentStake) { checkBrokeState(); return; }
 
+      ACTIVE_RULES = Object.assign({}, HOUSE_RULES);
+      instantWinThisGame = false;
       checkAndReplaceBrokeBots();
       const deck = createDeck();
       finishedRankOrder = [];
@@ -1028,6 +1082,7 @@
         players[i].cardsPlayedCount = 0;
         players[i].isCongLocked = false;
         players[i].congFinePaid = 0;
+        players[i].thoiPaid = 0;
         players[i].netPayout = 0;
 
         const pBadge = document.getElementById(`pass-badge-${i}`);
@@ -1300,6 +1355,15 @@
       }
 
       if (bounty > 0) {
+        // chop on a chop: the first chopper gives their bounty back to the owner of the 2
+        if (ACTIVE_RULES.chopRefund && lastCombo.chopInfo) {
+          const ci = lastCombo.chopInfo;
+          players[lastCombo.owner].cash -= ci.amount;
+          players[lastCombo.owner].netPayout -= ci.amount;
+          players[ci.victim].cash += ci.amount;
+          players[ci.victim].netPayout += ci.amount;
+        }
+        combo.chopInfo = { victim: lastCombo.owner, amount: bounty };
         players[playerIdx].cash += bounty;
         players[playerIdx].netPayout += bounty;
         players[lastCombo.owner].cash -= bounty;
@@ -1738,14 +1802,29 @@
       const container = document.getElementById('result-list-container');
       container.innerHTML = '';
 
-      const payoutLadder = { 1: currentStake * 2, 2: currentStake * 1, 3: -currentStake * 1, 4: -currentStake * 2 };
+      // placings pay +2 / +1 / -1 / -2 stakes. A player who was "cong" (never played) is last, so everything adds up to zero.
+      const payoutLadder = [currentStake * 2, currentStake * 1, -currentStake * 1, -currentStake * 2];
+      if (!instantWinThisGame) {
+        const order = finishedRankOrder.slice();
+        players.filter(q => !order.includes(q.id)).sort((a, b) => a.hand.length - b.hand.length || a.id - b.id).forEach(q => order.push(q.id));
+        if (order.length === 4) {
+          order.forEach((id, pos) => { players[id].cash += payoutLadder[pos]; players[id].netPayout += payoutLadder[pos]; });
+          // thoi: the player who finishes last pays the winner for 2s and bombs still in their hand (cong players already paid theirs)
+          if (ACTIVE_RULES.thoiLastPlace) {
+            const lastP = players[order[3]];
+            if (!lastP.isCongLocked && lastP.hand.length > 0) {
+              const thoi = penaltyForHand(lastP.hand, currentStake);
+              if (thoi > 0) {
+                const w = players[order[0]];
+                lastP.cash -= thoi; lastP.netPayout -= thoi; lastP.thoiPaid = thoi;
+                w.cash += thoi; w.netPayout += thoi;
+              }
+            }
+          }
+        }
+      }
 
       players.forEach(p => {
-        if (!p.isCongLocked && p.rank > 0 && finishedRankOrder.length > 1) {
-          let basePay = payoutLadder[p.rank] || 0;
-          p.cash += basePay;
-          p.netPayout += basePay;
-        }
 
         const isWin = p.rank === 1;
         const row = document.createElement('div');
@@ -1753,6 +1832,7 @@
         
         let rankStr = p.isCongLocked ? 'BỊ CÓNG' : `#${p.rank} HẠNG ${p.rank === 1 ? 'NHẤT' : (p.rank === 2 ? 'NHÌ' : (p.rank === 3 ? 'BA' : 'BẾT'))}`;
         let detailsStr = p.isCongLocked ? `Phạt Cóng + Thối: -$${p.congFinePaid.toFixed(0)}` : (p.hand.length > 0 ? `Remaining: ${p.hand.length} cards` : 'Cleared Hand!');
+        if (p.thoiPaid) detailsStr = `Phạt Thối (2s / bombs left): -$${p.thoiPaid.toFixed(0)}`;
 
         row.innerHTML = `
           <div class="result-player-info">
@@ -1777,6 +1857,21 @@
     function closeResultModal() {
       document.getElementById('resultModal').style.display = 'none';
       checkBrokeState();
+    }
+
+    function renderRules() {
+      Object.keys(HOUSE_RULE_DEFAULTS).forEach(k => { const el = document.getElementById('rule-' + k); if (el) el.checked = !!HOUSE_RULES[k]; });
+    }
+    function openRules() {
+      renderRules();
+      document.getElementById('rulesModal').style.display = 'flex';
+      const m = document.getElementById('hdr-menu'); if (m) m.classList.toggle('open', false);
+    }
+    function closeRules() { document.getElementById('rulesModal').style.display = 'none'; }
+    function onRuleChange() {
+      Object.keys(HOUSE_RULE_DEFAULTS).forEach(k => { const el = document.getElementById('rule-' + k); if (el) HOUSE_RULES[k] = el.checked; });
+      try { localStorage.setItem('cybernova_house_rules', JSON.stringify(HOUSE_RULES)); } catch (e) {}
+      document.getElementById('status-msg').innerText = 'HOUSE RULES SAVED: they apply from the next hand';
     }
 
     // phone menu (SFX / music / theme / logout)
