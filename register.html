@@ -19,6 +19,8 @@
       justify-content: center;
     }
 
+    input, textarea { user-select: text; -webkit-user-select: text; }
+
     .portal-card {
       background: rgba(18, 24, 38, 0.95);
       border: 2px solid #d4af37;
@@ -265,7 +267,7 @@
 
       <!-- Guest Tab -->
       <div id="tabGuest" class="view-section">
-        <p style="font-size:12px; color:#8a9bb8; line-height:1.4;">Play instantly with a <b>$20 Guest Bankroll</b>. Progress will be saved temporarily in your current browser session.</p>
+        <p style="font-size:12px; color:#8a9bb8; line-height:1.4;">Play instantly with a <b>$20 Guest Bankroll</b>. Guest play is not saved: your bankroll starts fresh every time. <b>Create an account</b> to keep your money.</p>
         <button class="btn-action btn-guest" onclick="processGuestEntry()">PLAY INSTANTLY ($20)</button>
       </div>
 
@@ -358,7 +360,7 @@
   <div id="resetModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-title">🔒 RESET PASSWORD</div>
-      <div style="font-size:11px; color:#8a9bb8;">Enter your username or email address and set your new password.</div>
+      <div style="font-size:11px; color:#8a9bb8;">Type the email address saved on your account and set a new password.</div>
       
       <div class="error-alert" id="resetError"></div>
 
@@ -380,7 +382,7 @@
   <div id="socialModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-title" id="socialModalTitle">ACCOUNT VERIFICATION</div>
-      <div style="font-size:11px; color:#8a9bb8;" id="socialModalSub">Enter password for account verification (Demo Password: <b>123</b>).</div>
+      <div style="font-size:11px; color:#8a9bb8;" id="socialModalSub">Enter password for account verification (Demo Password: <b>123</b>).<br><b style="color:#ff9f43;">Demo only: this does NOT connect to the real site. Never type your real password here.</b></div>
 
       <div class="error-alert" id="socialError"></div>
 
@@ -439,6 +441,29 @@
       }
     }
 
+    // a saved balance is kept as it is (even $0); only a brand-new account starts with $50
+    function startBalance(acc) {
+      const b = acc && Number(acc.balance);
+      return (acc && acc.balance !== undefined && acc.balance !== null && isFinite(b)) ? b : 50.00;
+    }
+
+    // (b) the game keeps the player's chips in 'cybernova_user_chips'. Copy them into the saved account
+    //     (every record of that player: username AND email) before the lobby loads, so signing in again keeps the money.
+    function syncBalanceFromGame() {
+      try {
+        const name = localStorage.getItem('cybernova_user_name');
+        let chips = parseFloat(localStorage.getItem('cybernova_user_chips'));
+        if (!name || !isFinite(chips)) return;
+        const db = getAccountsDB();
+        let changed = false;
+        Object.keys(db).forEach(k => {
+          const a = db[k];
+          if (a && a.username && a.username.toLowerCase() === name.toLowerCase()) { a.balance = chips; changed = true; }
+        });
+        if (changed) saveAccountsDB(db);
+      } catch (e) {}
+    }
+
     function getAccountsDB() {
       try {
         let db = JSON.parse(localStorage.getItem('cybernova_accounts_db'));
@@ -488,7 +513,7 @@
         if (db[key].password === passwordInput) {
           activeUser = {
             username: db[key].username,
-            balance: db[key].balance || 50.00,
+            balance: startBalance(db[key]),
             isGuest: false,
             difficulty: 'normal'
           };
@@ -500,7 +525,7 @@
         }
       }
 
-      showError("Account not found! Click 'FORGOT PASSWORD?' to set a password or create a new account.");
+      showError("Account not found. Please check the name, or create a new account.");
     }
 
     function processSignUp() {
@@ -513,10 +538,23 @@
         showError("Please fill out a Display Name and Password.");
         return;
       }
+      if (password.length < 4) {
+        showError("Please use a password with at least 4 characters.");
+        return;
+      }
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        showError("That email address does not look right.");
+        return;
+      }
 
       const db = getAccountsDB();
       const userKey = username.toLowerCase();
       const emailKey = email ? email.toLowerCase() : userKey;
+
+      if (db[userKey] || (email && db[emailKey])) {
+        showError("That name or email is already taken. Please sign in, or choose another one.");
+        return;
+      }
 
       const newAccount = {
         username: username,
@@ -578,17 +616,23 @@
       const db = getAccountsDB();
       const key = userKeyInput.toLowerCase();
 
-      let targetAccount = db[key];
+      const targetAccount = db[key];
       if (!targetAccount) {
-        targetAccount = {
-          username: userKeyInput,
-          email: userKeyInput.includes('@') ? userKeyInput : '',
-          password: newPassword,
-          balance: 50.00
-        };
-      } else {
-        targetAccount.password = newPassword;
+        errEl.innerText = "Account not found. Please check the name, or create a new account.";
+        errEl.style.display = 'block';
+        return;
       }
+      if (!targetAccount.email || userKeyInput.toLowerCase() !== targetAccount.email.toLowerCase()) {
+        errEl.innerText = "To reset a password, type the email address saved on that account.";
+        errEl.style.display = 'block';
+        return;
+      }
+      if (newPassword.length < 4) {
+        errEl.innerText = "Please use a new password with at least 4 characters.";
+        errEl.style.display = 'block';
+        return;
+      }
+      targetAccount.password = newPassword;
 
       db[key] = targetAccount;
       if (targetAccount.username) db[targetAccount.username.toLowerCase()] = targetAccount;
@@ -599,7 +643,7 @@
 
       activeUser = {
         username: targetAccount.username,
-        balance: targetAccount.balance || 50.00,
+        balance: startBalance(targetAccount),
         isGuest: false,
         difficulty: 'normal'
       };
@@ -612,7 +656,7 @@
       currentProvider = provider;
       document.getElementById('socialError').style.display = 'none';
       document.getElementById('socialModalTitle').innerText = `${provider.toUpperCase()} VERIFICATION`;
-      document.getElementById('socialModalSub').innerText = `Enter password for ${defaultHandle} (Demo Password: 123).`;
+      document.getElementById('socialModalSub').innerText = `Demo sign-in: this does NOT connect to ${provider}. Use the demo password 123 for ${defaultHandle}. Never type your real ${provider} password here.`;
       document.getElementById('socialFieldLabel').innerText = `${provider} Username / Email`;
       document.getElementById('socialHandleInput').value = defaultHandle;
       document.getElementById('socialPasswordInput').value = '';
@@ -642,7 +686,7 @@
         if (account.password === password) {
           activeUser = {
             username: account.username,
-            balance: account.balance || 50.00,
+            balance: startBalance(account),
             isGuest: false,
             difficulty: 'normal'
           };
@@ -690,6 +734,19 @@
 
       document.getElementById('lobbyUserName').innerText = activeUser.username + (activeUser.isGuest ? ' (Guest)' : '');
       document.getElementById('lobbyBankroll').innerText = `$${activeUser.balance.toFixed(2)}`;
+
+      // choose the highest table (up to $5) the player can afford; the old default $5 table was selected even with $3
+      const stakes = [1, 5, 10, 25, 50];
+      const cards = document.querySelectorAll('.table-card');
+      let pick = -1;
+      stakes.forEach((v, i) => { if (activeUser.balance >= v && v <= 5) pick = i; });
+      cards.forEach(c => c.classList.remove('selected'));
+      if (pick >= 0) {
+        selectedStake = stakes[pick];
+        cards[pick].classList.add('selected');
+      } else {
+        selectedStake = 0;
+      }
     }
 
     function selectTable(stakeVal, elem) {
@@ -703,14 +760,21 @@
     }
 
     function enterGameTable() {
+      if (!activeUser || selectedStake <= 0 || activeUser.balance < selectedStake) {
+        alert("Your bankroll is too low for this table. Please pick a lower stake.");
+        return;
+      }
       localStorage.setItem('cybernova_selected_stake', selectedStake);
       window.location.href = 'index.html';
     }
 
     window.onload = () => {
+      syncBalanceFromGame();
       localStorage.removeItem('cyberNova_currentUser');
       getAccountsDB();
     };
+    // coming back with the browser's Back button can restore an old copy of this page: reload it so the balance is fresh
+    window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
   </script>
 </body>
 </html>
