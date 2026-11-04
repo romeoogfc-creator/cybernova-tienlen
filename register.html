@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en" translate="no">
 <head>
   <meta charset="UTF-8">
+  <meta name="google" content="notranslate">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CYBERNOVA: Portal & Table Lobby</title>
   <link rel="manifest" href="./manifest.json">
@@ -276,7 +277,7 @@
       <!-- Social Account Buttons -->
       <div class="social-grid">
         <!-- Google -->
-        <div class="social-btn" title="Sign in with Google Account" onclick="openSocialModal('Google', 'romeogfc@gmail.com')">
+        <div class="social-btn" title="Sign in with Google Account" onclick="googleSignIn()">
           <svg viewBox="0 0 24 24"><path fill="#ea4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285f4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/><path fill="#fbbc05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9z"/><path fill="#34a853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/></svg>
         </div>
         <!-- Discord -->
@@ -292,6 +293,7 @@
           <svg viewBox="0 0 24 24" fill="#66c0f4"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.03 4.524 4.524s-2.03 4.524-4.524 4.524h-.105l-4.076 2.911c.002.052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.007-1.154-3.32-2.705L.405 14.74C1.83 20.002 6.552 24 12.18 24c6.627 0 12-5.373 12-12S18.605 0 11.979 0z"/></svg>
         </div>
       </div>
+      <div id="socialNote" style="font-size:10px; color:#8a9bb8; margin-top:10px; line-height:1.4;"></div>
     </div>
 
     <!-- TABLE SELECTION LOBBY VIEW -->
@@ -724,6 +726,69 @@
       saveAndOpenLobby();
     }
 
+    // ---------------------------------------------------------------------------------------------
+    //  REAL GOOGLE SIGN-IN (Firebase Authentication)
+    //  1) console.firebase.google.com -> Add project -> Add a Web app -> copy the firebaseConfig below
+    //  2) Build -> Authentication -> Sign-in method -> turn on Google
+    //  3) Authentication -> Settings -> Authorized domains -> add  romeoogfc-creator.github.io
+    //  Leave it as null and the Google button keeps using the old demo pop-up.
+    //  (A Firebase web config is NOT a secret: it only identifies your project.)
+    // ---------------------------------------------------------------------------------------------
+    let FIREBASE_CONFIG = null;
+    /* example:
+    FIREBASE_CONFIG = {
+      apiKey: "AIza...", authDomain: "your-project.firebaseapp.com", projectId: "your-project",
+      appId: "1:123456789:web:abcdef"
+    };
+    */
+
+    function updateSocialNote() {
+      const el = document.getElementById('socialNote');
+      if (!el) return;
+      el.innerText = FIREBASE_CONFIG
+        ? "Google opens the real Google sign-in. Discord, Twitch and Steam are demo logins for now."
+        : "Demo logins only for now (they do not connect to the real sites).";
+    }
+
+    async function googleSignIn() {
+      clearStatus();
+      if (!FIREBASE_CONFIG) { openSocialModal('Google', 'romeogfc@gmail.com'); return; }
+      showLoading("Opening Google sign-in...");
+      try {
+        const base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+        const { initializeApp } = await import(base + 'firebase-app.js');
+        const { getAuth, GoogleAuthProvider, signInWithPopup } = await import(base + 'firebase-auth.js');
+        const auth = getAuth(initializeApp(FIREBASE_CONFIG));
+        const result = await signInWithPopup(auth, new GoogleAuthProvider());
+        finishGoogleLogin(result.user);
+      } catch (e) {
+        const code = (e && e.code) || '';
+        if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') showError("Google sign-in was cancelled. Tap the Google button to try again.");
+        else if (code === 'auth/popup-blocked') showError("Your browser blocked the Google window. Please allow pop-ups for this page and try again.");
+        else if (code === 'auth/unauthorized-domain') showError("This website address is not allowed yet. Add it under Firebase > Authentication > Settings > Authorized domains.");
+        else showError("Google sign-in did not work (" + (code || 'unknown error') + "). Please try again.");
+      }
+    }
+
+    // a Google account becomes (or finds) the game account with the same email: the name, picture and bankroll are passed on
+    function finishGoogleLogin(g) {
+      const email = (g.email || '').toLowerCase();
+      if (!email) { showError("Google did not share an email address, so the account could not be created."); return; }
+      const db = getAccountsDB();
+      let acc = db[email];
+      if (!acc) {
+        const name = (g.displayName || email.split('@')[0]).trim();
+        acc = { username: name, email: email, password: '', provider: 'google', uid: g.uid, balance: 50.00 };
+        db[email] = acc;
+        if (!db[name.toLowerCase()]) db[name.toLowerCase()] = acc;
+      }
+      acc.provider = 'google';
+      acc.avatar = g.photoURL || acc.avatar || '';
+      saveAccountsDB(db);
+      activeUser = { username: acc.username, balance: startBalance(acc), isGuest: false, difficulty: 'normal', avatar: acc.avatar };
+      saveAndOpenLobby();
+    }
+
     function saveAndOpenLobby() {
       localStorage.setItem('cybernova_user_name', activeUser.username);
       localStorage.setItem('cybernova_user_chips', activeUser.balance.toFixed(2));
@@ -769,6 +834,7 @@
     }
 
     window.onload = () => {
+      updateSocialNote();
       syncBalanceFromGame();
       localStorage.removeItem('cyberNova_currentUser');
       getAccountsDB();
