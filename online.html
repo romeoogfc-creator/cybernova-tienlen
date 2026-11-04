@@ -1583,6 +1583,8 @@
       selected.clear(); showView('home'); renderProfileBits(); stopTimerLoop();
       try { history.replaceState(null, '', location.pathname + (SERVER.startsWith('ws://') ? '?server=' + encodeURIComponent(SERVER) : '')); } catch (e) {}
       if (text) homeMsg(text, 'err');
+      // the table may still be settling this player's last hand: refresh the balance shortly after, so it never shows a stale number
+      [1200, 4000].forEach(ms => setTimeout(async () => { try { if (window.CN && CN.user && CN.user() && !joined) { await CN.refresh(); renderProfileBits(); } } catch (e) {} }, ms));
     }
     function leaveTable() { sendMsg({ t: 'leave' }); backHome(''); }
 
