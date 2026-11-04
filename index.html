@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en" translate="no">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="google" content="notranslate" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>CYBERNOVA: Tiến Lên Miền Nam Pro</title>
   <link rel="manifest" href="./manifest.json">
   <style>
@@ -219,6 +220,150 @@
       .btn-sort-pill { padding: 5px 8px; font-size: 9px; right: 4px; }
     }
   </style>
+  <style id="responsive-layer">
+    /* ================= RESPONSIVE LAYER: phones, tablets, laptops, big monitors ================= */
+    :root {
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+      --cw: min(100vw, 1500px);                    /* width of the game on very wide screens */
+      --avail: calc(var(--cw) - 40px);             /* room for the 13-card hand */
+      /* card width: as big as fits, 13 cards overlap to always fit the screen */
+      --card-w: clamp(34px, min(calc(var(--avail) / 7.4), 11.2vh), 92px);
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+    body { display: flex; justify-content: center; }
+    #app-container { max-width: 1500px; padding: var(--safe-t) var(--safe-r) 0 var(--safe-l); }
+    #table-viewport { margin-bottom: calc(6px + var(--safe-b)); }
+
+    /* cards scale with the screen */
+    .card { width: var(--card-w); height: calc(var(--card-w) * 1.44); font-size: calc(var(--card-w) * 0.27); }
+    .card-corner { font-size: calc(var(--card-w) * 0.26); width: calc(var(--card-w) * 0.3); }
+    .card-center-art { font-size: calc(var(--card-w) * 0.46); }
+    .seat-bottom .hand .card { margin-left: calc(min(calc((var(--avail) - var(--card-w)) / 12), calc(var(--card-w) * 0.62)) - var(--card-w)); }
+    .seat-bottom .hand .card:first-child { margin-left: 0; }
+    .seat-bottom .hand .card.selected { transform: translateY(calc(var(--card-w) * -0.32)); }
+    #played-cards-area .card { width: calc(var(--card-w) * 0.9); height: calc(var(--card-w) * 1.3); margin-left: calc(var(--card-w) * -0.42); }
+    #played-cards-area .card:first-child { margin-left: 0; }
+    .avatar-name { font-size: 11px; }
+    .avatar-cash, .avatar-count { font-size: 10px; }
+    .btn-sort-pill { min-height: 30px; }
+    @media (hover: none) {
+      .seat-bottom .hand .card:hover:not(.selected) { transform: none; }
+    }
+
+    /* header: extra buttons live in a menu on small screens */
+    .hdr-menu { display: flex; gap: 6px; align-items: center; }
+    .hdr-menu-toggle { display: none; }
+    .brand-title { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #combo-banner { width: max-content; max-width: 90%; text-align: center; font-size: clamp(14px, 4.4vw, 20px); }
+    #refillModal, #resultModal { height: 100vh; height: 100dvh; padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l); }
+    .result-box, .refill-box { max-height: 92vh; max-height: 92dvh; overflow-y: auto; }
+    @supports (-webkit-touch-callout: none) { .stake-select { font-size: 16px; } }   /* stops iPhone zooming into the dropdown */
+
+    /* every touch screen: comfortable tap targets */
+    @media (pointer: coarse) {
+      .btn-act { min-height: 44px; padding: 10px 18px; }
+      .btn-hdr { min-height: 40px; }
+      .btn-sort-pill { min-height: 40px; padding: 8px 16px; }
+      .stake-select, .stat-badge { min-height: 36px; }
+    }
+
+    /* ---------- tablets and phones: compact header with a menu ---------- */
+    @media (max-width: 900px) {
+      header { height: 48px; padding: 0 8px; gap: 6px; }
+      .brand-container { min-width: 0; flex: 1 1 auto; }
+      .brand { min-width: 0; }
+      .brand-title { max-width: 30vw; font-size: 12px; }
+      .brand-sub { display: none; }
+      .header-actions { flex: 0 0 auto; gap: 5px; }
+      .stat-badge { font-size: 11px; padding: 6px 8px; }
+      .stake-select { max-width: 38vw; min-height: 34px; }
+      .hdr-menu-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 36px; font-size: 18px; padding: 0 8px; }
+      .hdr-menu {
+        display: none; position: fixed; top: calc(var(--safe-t) + 52px); right: calc(var(--safe-r) + 8px);
+        flex-direction: column; align-items: stretch; background: #11141c; border: 2px solid #d4af37;
+        border-radius: 12px; padding: 10px; gap: 8px; z-index: 500; box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+      }
+      .hdr-menu.open { display: flex; }
+      .hdr-menu .btn-hdr { min-height: 44px; font-size: 12px; padding: 8px 16px; text-align: left; white-space: nowrap; }
+    }
+
+    /* ---------- portrait phones ---------- */
+    @media (max-width: 600px) {
+      #table-viewport { margin: 4px 4px calc(4px + var(--safe-b)); border-width: 3px; border-radius: 14px; }
+      .seat-top .hand, .seat-left .hand, .seat-right .hand { display: none; }     /* the card count is in the name plate */
+      .seat-top { top: 6px; }
+      .seat-left { left: 4px; top: 25%; transform: none; }
+      .seat-right { right: 4px; top: 25%; transform: none; }
+      #center-field { top: 49%; width: 96%; height: 28%; }
+      #status-msg { font-size: 12px; padding: 0 6px; }
+      .avatar-card { min-width: 0; padding: 4px 7px; gap: 5px; }
+      .avatar-name { font-size: 11px; }
+      .avatar-cash { font-size: 10px; }
+      .avatar-count { font-size: 10px; }
+      .pass-badge, .rank-badge { font-size: 9px; }
+
+      .seat-bottom { bottom: 4px; }
+      .controls-wrapper { flex-wrap: wrap; gap: 6px; padding: 0 6px; margin-bottom: 6px; }
+      #action-bar { flex-wrap: wrap; justify-content: center; gap: 6px; }
+      .btn-act { min-height: 42px; padding: 8px 14px; font-size: 12px; }
+      .btn-act.btn-deal:disabled { display: none; }
+      .btn-sort-pill { position: static; min-height: 40px; padding: 8px 14px; font-size: 11px; }
+      #avatar-0 { margin-bottom: 6px !important; padding: 3px 8px; }
+      .seat-bottom .hand { padding-top: 14px; }
+    }
+    @media (max-width: 600px) and (max-height: 700px) {
+      #avatar-0 .avatar-info { flex-direction: row; gap: 6px; align-items: baseline; }
+      #avatar-0 { margin-bottom: 4px !important; }
+      #center-field { top: 47%; }
+      .seat-left, .seat-right { top: 23%; }
+    }
+    @media (max-width: 360px) {
+      .stat-badge#hdr-stake-badge { display: none; }
+      .avatar-img { width: 28px; height: 28px; }
+    }
+
+    /* ---------- phones in landscape (short screens) ---------- */
+    @media (max-height: 520px) and (orientation: landscape) {
+      header { height: 40px; }
+      .btn-hdr, .stat-badge, .stake-select { min-height: 30px; }
+      #table-viewport { margin: 3px; border-width: 3px; border-radius: 12px; }
+      .seat-top .hand, .seat-left .hand, .seat-right .hand { display: none; }
+      .seat-top { top: 3px; flex-direction: row; }
+      .seat-left { left: 6px; top: 40%; transform: translateY(-50%); }
+      .seat-right { right: 6px; top: 40%; transform: translateY(-50%); }
+      #center-field { top: 42%; width: 42%; height: 40%; }
+      #status-msg { font-size: 11px; margin-bottom: 2px; }
+      .avatar-card { min-width: 0; padding: 3px 6px; gap: 4px; }
+      .avatar-name { font-size: 10px; }
+      .avatar-cash, .avatar-count { font-size: 10px; }
+
+      .seat-bottom {
+        display: grid; grid-template-columns: auto 1fr auto; align-items: end; column-gap: 6px;
+        bottom: 3px; width: 100%; max-width: none; padding: 0 8px; z-index: 15;
+      }
+      .seat-bottom #avatar-0 { grid-column: 1; grid-row: 1; margin: 0 !important; }
+      .seat-bottom #hand-0 { grid-column: 2; grid-row: 1; padding-top: 12px; }
+      .seat-bottom .controls-wrapper { grid-column: 3; grid-row: 1; width: auto; margin: 0; flex-direction: column; align-items: stretch; gap: 5px; padding: 0; }
+      .seat-bottom #action-bar { flex-direction: column; gap: 5px; }
+      .btn-act { min-height: 36px; padding: 6px 12px; font-size: 11px; }
+      .btn-act.btn-deal:disabled { display: none; }
+      .btn-sort-pill { position: static; min-height: 36px; padding: 6px 12px; font-size: 10px; text-align: center; }
+    }
+
+    /* ---------- large screens: a little more breathing room ---------- */
+    @media (min-width: 1200px) and (min-height: 700px) {
+      .avatar-name { font-size: 12px; }
+      .avatar-cash { font-size: 11px; }
+      .avatar-count { font-size: 10px; }
+      #status-msg { font-size: 16px; }
+      .btn-act { padding: 10px 22px; font-size: 13px; }
+      .btn-hdr { font-size: 11px; padding: 7px 12px; }
+    }
+  </style>
 </head>
 <body>
   <div id="app-container">
@@ -235,13 +380,16 @@
         <div class="stat-badge" id="hdr-stake-badge" style="color:#ffd700; border-color:#ffd700;">TABLE: $5</div>
         <select class="stake-select" id="ai-difficulty" onchange="changeDifficulty(this.value)">
           <option value="normal">⚡ Normal AI</option>
-          <option value="hard">🧠 Hard AI (Pro Master & Trap)</option>
+          <option value="hard">🧠 Hard AI (Card Counting & Traps)</option>
         </select>
-        <button class="btn-hdr active-toggle" id="btn-sfx" onclick="toggleSFX()">🔊 SFX: ON</button>
-        <button class="btn-hdr" id="btn-music" onclick="toggleMusic()">🎵 MUSIC: OFF</button>
         <div class="stat-badge" id="player-cash">$20</div>
-        <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
-        <button class="btn-hdr" onclick="logoutUser()">LOGOUT</button>
+        <button class="btn-hdr hdr-menu-toggle" id="btn-menu" aria-label="Menu" onclick="toggleHdrMenu(event)">☰</button>
+        <div class="hdr-menu" id="hdr-menu">
+          <button class="btn-hdr active-toggle" id="btn-sfx" onclick="toggleSFX()">🔊 SFX: ON</button>
+          <button class="btn-hdr" id="btn-music" onclick="toggleMusic()">🎵 MUSIC: OFF</button>
+          <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
+          <button class="btn-hdr" onclick="logoutUser()">LOGOUT</button>
+        </div>
       </div>
     </header>
 
@@ -624,7 +772,8 @@
     function syncUserSession() {
       const rawUser = localStorage.getItem('cyberNova_currentUser');
       let username = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
-      let balance = parseFloat(localStorage.getItem('cybernova_user_chips')) || 50.00;
+      let balance = parseFloat(localStorage.getItem('cybernova_user_chips'));
+      if (!isFinite(balance)) balance = 50.00;
       
       const savedStake = parseFloat(localStorage.getItem('cybernova_selected_stake'));
       if (savedStake) currentStake = savedStake;
@@ -806,7 +955,7 @@
       }
 
       for (let i = 0; i <= pairRanks.length - 4; i++) {
-        if (pairRanks[i+1] === pairRanks[i]+1 && pairRanks[i+2] === pairRanks[i]+1 && pairRanks[i+3] === pairRanks[i]+3 && pairRanks[i+3] < 12) {
+        if (pairRanks[i+1] === pairRanks[i]+1 && pairRanks[i+2] === pairRanks[i]+2 && pairRanks[i+3] === pairRanks[i]+3 && pairRanks[i+3] < 12) {
           fourPairs.push([rankGroups[pairRanks[i]].slice(0,2), rankGroups[pairRanks[i+1]].slice(0,2), rankGroups[pairRanks[i+2]].slice(0,2), rankGroups[pairRanks[i+3]].slice(0,2)].flat());
         }
       }
@@ -1061,7 +1210,8 @@
       if (oldCombo.isTwo && ['3PAIR_STRAIGHT', 'QUAD', '4PAIR_STRAIGHT'].includes(newCombo.type)) return true;
       if (oldCombo.isPairTwos && ['QUAD', '4PAIR_STRAIGHT'].includes(newCombo.type)) return true;
       if (oldCombo.type === '3PAIR_STRAIGHT' && ['QUAD', '4PAIR_STRAIGHT'].includes(newCombo.type)) return true;
-      if (oldCombo.type === 'QUAD' && ['QUAD', '4PAIR_STRAIGHT'].includes(newCombo.type) && newCombo.rankVal > oldCombo.rankVal) return true;
+      if (oldCombo.type === 'QUAD' && newCombo.type === '4PAIR_STRAIGHT') return true;
+      if (oldCombo.type === 'QUAD' && newCombo.type === 'QUAD' && newCombo.rankVal > oldCombo.rankVal) return true;
       if (newCombo.type === oldCombo.type) {
         if (newCombo.type === 'STRAIGHT' && newCombo.len !== oldCombo.len) return false;
         return newCombo.rankVal > oldCombo.rankVal;
@@ -1260,65 +1410,321 @@
       if (players[currentTurn].isBot) setTimeout(botTurn, 800);
     }
 
+    // ========================================================================
+    //  BOT BRAIN v2
+    //  NORMAL: plans the whole hand (fewest turns), leads its weakest groups first, keeps pairs / triples /
+    //          straights together, saves its 2s, chops 2s with bombs, avoids "cong".
+    //  HARD:   everything in Normal, plus: card counting (knows which combos can no longer be beaten),
+    //          blocks a player who is about to go out, keeps bombs as traps for 2s (4x / 8x / 12x bounties),
+    //          never throws a bad single when someone has 1 card left. It plays fair: it never looks at your cards.
+    // ========================================================================
+    const AI_CFG = {
+      normal: {
+        D: 14,          // how much a "winner" combo is worth compared with one turn (a turn costs 100)
+        B: 24,          // value of taking a trick instead of passing
+        WASTE: 30,      // penalty for spending a winner on a small trick
+        LEADLEN: 0.5,   // bonus per card when leading (clears more cards)
+        BOMBLEAD: 6,    // keeps bombs in hand when leading
+        NOISE: 0.10     // chance to pass on a marginal trick (a little human-like)
+      },
+      hard: {
+        D: 14, B: 120, WASTE: 0, LEADLEN: 0, BOMBLEAD: 6, NOISE: 0
+      }
+    };
+
+    function aiCounts(cards) {
+      const c = new Array(13).fill(0);
+      for (const x of cards) c[x.rankIdx]++;
+      return c;
+    }
+
+    function aiUnseen(hand) {
+      const have = new Set(hand.map(c => c.val));
+      const played = new Set(cardMemoryMatrix.map(c => c.val));
+      const vals = [];
+      const u = new Array(13).fill(0);
+      for (let v = 0; v < 52; v++) {
+        if (!have.has(v) && !played.has(v)) { vals.push(v); u[v >> 2]++; }
+      }
+      return { vals, u };
+    }
+
+    // "winnerness" of a rank group: 0 = easily beaten, 1 = nobody can beat it
+    function aiBuildModel(hand, hard, D) {
+      const single = [], pair = [], triple = [];
+      if (!hard) {
+        for (let r = 0; r < 13; r++) {
+          single[r] = Math.pow(r / 12, 2);
+          pair[r] = 0.9 * single[r];
+          triple[r] = 0.9 * single[r];
+        }
+      } else {
+        const { u } = aiUnseen(hand);
+        for (let r = 0; r < 13; r++) {
+          let higher = 0, hp = 0, ht = 0;
+          for (let s = r + 1; s < 13; s++) {
+            higher += u[s];
+            if (u[s] >= 2) hp++;
+            if (u[s] >= 3) ht++;
+          }
+          single[r] = Math.max(0, 1 - higher / 8);
+          pair[r] = Math.max(0, 1 - hp / 3);
+          triple[r] = Math.max(0, 1 - ht / 2);
+        }
+      }
+      return { single, pair, triple, D };
+    }
+
+    function aiWin(model, kind, top, len) {
+      if (kind === 'S') return model.single[top];
+      if (kind === 'P') return model.pair[top];
+      if (kind === 'T') return model.triple[top];
+      if (kind === 'ST') return Math.min(1, 0.12 * len + 0.25 * (top / 11));
+      if (kind === 'Q') return 1.0;
+      if (kind === 'P3') return 0.9;
+      return 1.0; // P4
+    }
+
+    function aiCost(model, kind, top, len) {
+      return 100 - model.D * aiWin(model, kind, top, len);
+    }
+
+    // cheapest way to clear a hand (given as 13 rank counts) using legal combos only
+    function aiPartition(cnt, memo, model) {
+      let key = 0;
+      for (let i = 0; i < 13; i++) key = key * 5 + cnt[i];
+      if (key === 0) return 0;
+      const hit = memo.get(key);
+      if (hit !== undefined) return hit;
+
+      let r = 0;
+      while (cnt[r] === 0) r++;
+      let best = Infinity;
+      const n = cnt[r];
+
+      for (let k = 1; k <= n; k++) {
+        const kind = k === 1 ? 'S' : (k === 2 ? 'P' : (k === 3 ? 'T' : 'Q'));
+        cnt[r] -= k;
+        const v = aiCost(model, kind, r, k) + aiPartition(cnt, memo, model);
+        cnt[r] += k;
+        if (v < best) best = v;
+      }
+
+      if (r <= 9) {
+        for (let L = 3; r + L - 1 <= 11; L++) {
+          let ok = true;
+          for (let i = r; i < r + L; i++) if (cnt[i] === 0) { ok = false; break; }
+          if (!ok) break;
+          for (let i = r; i < r + L; i++) cnt[i]--;
+          const v = aiCost(model, 'ST', r + L - 1, L) + aiPartition(cnt, memo, model);
+          for (let i = r; i < r + L; i++) cnt[i]++;
+          if (v < best) best = v;
+        }
+      }
+
+      for (const L of [3, 4]) {
+        if (r + L - 1 > 11) continue;
+        let ok = true;
+        for (let i = r; i < r + L; i++) if (cnt[i] < 2) { ok = false; break; }
+        if (!ok) continue;
+        for (let i = r; i < r + L; i++) cnt[i] -= 2;
+        const v = aiCost(model, L === 3 ? 'P3' : 'P4', r + L - 1, L) + aiPartition(cnt, memo, model);
+        for (let i = r; i < r + L; i++) cnt[i] += 2;
+        if (v < best) best = v;
+      }
+
+      memo.set(key, best);
+      return best;
+    }
+
+    // every legal combo the hand can make (one candidate per useful choice of suits)
+    function aiEnumerate(hand) {
+      const byRank = Array.from({ length: 13 }, () => []);
+      [...hand].sort((a, b) => a.val - b.val).forEach(c => byRank[c.rankIdx].push(c));
+      const out = [];
+      const push = (cards) => {
+        const combo = evalCombo([...cards]);
+        if (combo) out.push({ cards: [...cards], combo });
+      };
+
+      for (let r = 0; r < 13; r++) {
+        const g = byRank[r];
+        for (let i = 0; i < g.length; i++) push([g[i]]);
+        for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) push([g[i], g[j]]);
+        for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) for (let k = j + 1; k < g.length; k++) push([g[i], g[j], g[k]]);
+        if (g.length === 4) push(g);
+      }
+
+      for (let s = 0; s <= 9; s++) {
+        for (let L = 3; s + L - 1 <= 11; L++) {
+          let ok = true;
+          for (let i = 0; i < L; i++) if (byRank[s + i].length === 0) { ok = false; break; }
+          if (!ok) break;
+          const base = [];
+          for (let i = 0; i < L - 1; i++) base.push(byRank[s + i][0]);
+          for (const top of byRank[s + L - 1]) push([...base, top]);
+        }
+      }
+
+      for (const L of [3, 4]) {
+        for (let s = 0; s + L - 1 <= 11; s++) {
+          let ok = true;
+          for (let i = 0; i < L; i++) if (byRank[s + i].length < 2) { ok = false; break; }
+          if (!ok) continue;
+          const base = [];
+          for (let i = 0; i < L - 1; i++) base.push(byRank[s + i][0], byRank[s + i][1]);
+          const g = byRank[s + L - 1];
+          for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) push([...base, g[i], g[j]]);
+        }
+      }
+      return out;
+    }
+
+    function aiKind(combo) {
+      switch (combo.type) {
+        case 'SINGLE': return 'S';
+        case 'PAIR': return 'P';
+        case 'TRIPLE': return 'T';
+        case 'QUAD': return 'Q';
+        case 'STRAIGHT': return 'ST';
+        case '3PAIR_STRAIGHT': return 'P3';
+        default: return 'P4';
+      }
+    }
+
+    function aiCandInfo(c) {
+      const kind = aiKind(c.combo);
+      const top = (kind === 'ST' || kind === 'P3' || kind === 'P4') ? c.cards.reduce((m, x) => Math.max(m, x.rankIdx), 0) : c.cards[0].rankIdx;
+      return { kind, top, len: kind === 'ST' ? c.cards.length : (kind === 'P3' ? 3 : (kind === 'P4' ? 4 : c.cards.length)) };
+    }
+
+    // bounty (in stakes) the move would win if it chops the table combo
+    function aiBountyUnits(combo, table) {
+      if (!table || table.owner === currentTurn) return 0;
+      const chopper = ['3PAIR_STRAIGHT', 'QUAD', '4PAIR_STRAIGHT'].includes(combo.type);
+      if (table.isSingleBlackTwo && chopper) return 4;
+      if (table.isSingleRedTwo && chopper) return 8;
+      if (table.isPairTwos && ['QUAD', '4PAIR_STRAIGHT'].includes(combo.type)) return 12;
+      if (isChopPlay(combo, table)) return 6;
+      return 0;
+    }
+
+    function findBestBotPlay(hand, tableCombo, levelName) {
+      const hard = (levelName || currentDifficulty) === 'hard';
+      const P = hard ? AI_CFG.hard : AI_CFG.normal;
+      const selfIdx = currentTurn;
+      const self = players[selfIdx];
+      const model = aiBuildModel(hand, hard, P.D);
+      const memo = new Map();
+      const cnt = aiCounts(hand);
+      const baseH = aiPartition(cnt, memo, model);
+      const leading = !tableCombo || tableCombo.owner === selfIdx;
+
+      let cands = aiEnumerate(hand);
+      if (leading && isAbsoluteFirstTurnOfGame) {
+        const only3 = cands.filter(c => c.cards.some(x => x.rankIdx === 0 && x.suitIdx === 0));
+        if (only3.length) cands = only3;
+      }
+      if (!cands.length) return null;
+
+      const opps = players.filter((p, i) => i !== selfIdx && p.rank === 0 && !p.isCongLocked);
+      const minOpp = opps.length ? Math.min(...opps.map(p => p.hand.length)) : 13;
+
+      const unseen = hard ? aiUnseen(hand) : null;
+      const isMaster = (c) => {
+        const t = c.combo.type;
+        if (!hard) {
+          if (t === 'SINGLE' || t === 'PAIR' || t === 'TRIPLE') return c.cards[0].rankIdx >= 11;
+          return t === 'QUAD' || t === '3PAIR_STRAIGHT' || t === '4PAIR_STRAIGHT';
+        }
+        if (t === 'SINGLE') return !unseen.vals.some(v => v > c.combo.rankVal);
+        if (t === 'PAIR' || t === 'TRIPLE') {
+          const need = t === 'PAIR' ? 2 : 3;
+          for (let s = 0; s < 13; s++) {
+            const vs = unseen.vals.filter(v => (v >> 2) === s);
+            if (vs.length >= need && Math.max(...vs) > c.combo.rankVal) return false;
+          }
+          return true;
+        }
+        if (t === 'QUAD') {
+          for (let s = 0; s < 13; s++) {
+            if (unseen.u[s] === 4 && s * 4 + 3 > c.combo.rankVal) return false;
+          }
+          return true;
+        }
+        return t === '3PAIR_STRAIGHT' || t === '4PAIR_STRAIGHT';
+      };
+
+      const remainderCost = (c) => {
+        const rem = cnt.slice();
+        const cc = aiCounts(c.cards);
+        for (let i = 0; i < 13; i++) rem[i] -= cc[i];
+        let empty = true;
+        for (let i = 0; i < 13; i++) if (rem[i] !== 0) { empty = false; break; }
+        const info = aiCandInfo(c);
+        return { empty, value: empty ? 0 : aiPartition(rem, memo, model), cost: aiCost(model, info.kind, info.top, info.len), info };
+      };
+
+      // ---------------- LEADING ----------------
+      if (leading) {
+        let best = null, bestScore = Infinity;
+        for (const c of cands) {
+          const r = remainderCost(c);
+          if (r.empty) return c;                       // goes out
+          let score = r.value + r.cost;                // equals baseH when the move belongs to the best plan
+          score += 0.01 * c.combo.rankVal;             // weakest first
+          score -= P.LEADLEN * c.cards.length; // clear more cards
+          if (['QUAD', '3PAIR_STRAIGHT', '4PAIR_STRAIGHT'].includes(c.combo.type)) score += P.BOMBLEAD;
+          if (minOpp === 1 && c.combo.type === 'SINGLE' && !isMaster(c)) score += 45;
+          if (minOpp === 2 && c.combo.type === 'PAIR' && !isMaster(c)) score += 18;
+          if (score < bestScore) { bestScore = score; best = c; }
+        }
+        return best || cands[0];
+      }
+
+      // ---------------- FOLLOWING ----------------
+      const options = cands.filter(c => canBeat(c.combo, tableCombo));
+      if (!options.length) return null;
+
+      const owner = players[tableCombo.owner];
+      const ownerCards = owner.hand.length;
+      let B = P.B;
+      if (ownerCards <= 1) B += 50;
+      else if (ownerCards <= 2) B += 30;
+      else if (hard && ownerCards <= 3) B += 12;
+      if (hard && minOpp <= 2) B += 10;
+      if (self.cardsPlayedCount === 0 && minOpp <= 4) B += 40;     // do not get "cong"
+      if (hand.length <= 3) B += 20;
+
+      let best = null, bestScore = Infinity;
+      for (const c of options) {
+        const r = remainderCost(c);
+        if (r.empty) return c;                                     // goes out
+        const bounty = aiBountyUnits(c.combo, tableCombo);
+        let score = (r.value + r.cost - baseH);                    // damage to the plan
+        if (!bounty) score += P.WASTE * aiWin(model, r.info.kind, r.info.top, r.info.len);
+        score -= 6 * bounty;                                       // chops pay: 4x/8x/12x stake
+        score += 0.01 * c.combo.rankVal;
+        if (score < bestScore) { bestScore = score; best = c; }
+      }
+
+      if (!best) return null;
+      if (bestScore >= B) return null;
+      if (!hard && ownerCards > 3 && Math.random() < P.NOISE && B - bestScore < 10) return null;
+      return best;
+    }
+
     function botTurn() {
       if (!gameActive || currentTurn === 0 || players[currentTurn].rank > 0 || players[currentTurn].isCongLocked) return;
 
       const bot = players[currentTurn];
-      const validPlay = findBestBotPlay(bot.hand, lastCombo);
+      const validPlay = findBestBotPlay(bot.hand, lastCombo, bot.aiLevel || currentDifficulty);
 
       if (validPlay) {
         executePlay(bot.id, validPlay.cards, validPlay.combo);
       } else {
         executePass(bot.id);
       }
-    }
-
-    function findBestBotPlay(hand, tableCombo) {
-      const sorted = [...hand].sort((a,b) => a.val - b.val);
-      const decomp = decomposeHand(sorted);
-
-      if (!tableCombo || tableCombo.owner === currentTurn) {
-        if (isAbsoluteFirstTurnOfGame) {
-          const c3s = sorted.find(c => c.rankIdx === 0 && c.suitIdx === 0);
-          if (c3s) return { cards: [c3s], combo: evalCombo([c3s]) };
-        }
-        if (decomp.straights.length > 0 && decomp.straights[0].length >= 3) {
-          const sCards = decomp.straights[0].map(r => sorted.find(c => c.rankIdx === r));
-          return { cards: sCards, combo: evalCombo(sCards) };
-        }
-        if (decomp.pairs.length > 0) return { cards: decomp.pairs[0], combo: evalCombo(decomp.pairs[0]) };
-        const lowestSingle = sorted.find(c => c.rankIdx !== 12) || sorted[0];
-        return { cards: [lowestSingle], combo: evalCombo([lowestSingle]) };
-      }
-
-      if (tableCombo.type === 'SINGLE') {
-        const candidate = sorted.find(c => c.val > tableCombo.rankVal);
-        if (candidate) {
-          if (candidate.rankIdx === 12 && currentDifficulty === 'normal' && sorted.length > 3) {
-          } else {
-            return { cards: [candidate], combo: evalCombo([candidate]) };
-          }
-        }
-        if (tableCombo.isTwo) {
-          if (decomp.threePairs.length > 0) return { cards: decomp.threePairs[0], combo: evalCombo(decomp.threePairs[0]) };
-          if (decomp.quads.length > 0) return { cards: decomp.quads[0], combo: evalCombo(decomp.quads[0]) };
-        }
-      } else if (tableCombo.type === 'PAIR') {
-        for (let p of decomp.pairs) {
-          const combo = evalCombo(p);
-          if (combo.rankVal > tableCombo.rankVal) return { cards: p, combo };
-        }
-      } else if (tableCombo.type === 'STRAIGHT') {
-        for (let sRanks of decomp.straights) {
-          if (sRanks.length === tableCombo.len) {
-            const sCards = sRanks.map(r => sorted.find(c => c.rankIdx === r));
-            const combo = evalCombo(sCards);
-            if (combo.rankVal > tableCombo.rankVal) return { cards: sCards, combo };
-          }
-        }
-      }
-
-      return null;
     }
 
     function endGame() {
@@ -1372,6 +1778,16 @@
       document.getElementById('resultModal').style.display = 'none';
       checkBrokeState();
     }
+
+    // phone menu (SFX / music / theme / logout)
+    function toggleHdrMenu(e) {
+      if (e) e.stopPropagation();
+      document.getElementById('hdr-menu').classList.toggle('open');
+    }
+    document.addEventListener('click', (e) => {
+      const m = document.getElementById('hdr-menu');
+      if (m && m.classList.contains('open') && !m.contains(e.target)) m.classList.toggle('open', false);
+    });
 
     window.onload = () => {
       syncUserSession();
