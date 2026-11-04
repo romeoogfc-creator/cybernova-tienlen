@@ -372,6 +372,216 @@
   </style>
 </head>
 <body>
+  <script>
+/* CyberNova: Help & Feedback window. One file shared by register.html, index.html and online.html.
+   Call  openHelp()  (How to play)  or  openHelp('feedback')  from any button. */
+(function () {
+  'use strict';
+  var VERSION = '2026-11-04';
+  var API = (function () {
+    var q = new URLSearchParams(location.search).get('server');
+    if (q && /^wss?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(q)) return q.replace(/^ws/, 'http');
+    return 'https://cybernova-online.romeo-games.workers.dev';
+  })();
+  var PAGE = (location.pathname.split('/').pop() || 'index').replace(/\.html$/, '') || 'index';
+
+  // ------------------------------------------------------------------ text (English / Vietnamese)
+  var T = {
+    en: {
+      title: 'HELP & FEEDBACK', tabHelp: 'How to play', tabFb: 'Send feedback', close: 'Close',
+      kind: 'What is it about?', kinds: { bug: '🐞 Something is broken', idea: '💡 An idea', question: '❓ A question', other: '💬 Something else' },
+      msg: 'Your message', msgPh: 'Tell us what happened or what you would like. The more detail, the better.',
+      contact: 'Your email or name (optional, only if you want a reply)', tech: 'Include technical details (page, screen size, browser) to help us find the problem',
+      send: 'SEND', sending: 'Sending…', thanks: 'Thank you! Your message was sent.', another: 'Send another',
+      errShort: 'Please write a few words first.', errSend: 'Could not send right now. Please try again in a moment.', errLimit: 'You have sent a lot of messages. Please try again later.',
+      note: 'We read every message. We never ask for passwords. Crashes in the game are also reported to us automatically (no personal details).'
+    },
+    vi: {
+      title: 'TRỢ GIÚP & GÓP Ý', tabHelp: 'Cách chơi', tabFb: 'Gửi góp ý', close: 'Đóng',
+      kind: 'Bạn muốn nói về điều gì?', kinds: { bug: '🐞 Có lỗi', idea: '💡 Ý tưởng', question: '❓ Câu hỏi', other: '💬 Khác' },
+      msg: 'Nội dung', msgPh: 'Hãy cho chúng tôi biết đã xảy ra chuyện gì hoặc bạn muốn gì. Càng chi tiết càng tốt.',
+      contact: 'Email hoặc tên của bạn (không bắt buộc, chỉ khi bạn muốn nhận phản hồi)', tech: 'Gửi kèm thông tin kỹ thuật (trang, cỡ màn hình, trình duyệt) để chúng tôi tìm lỗi',
+      send: 'GỬI', sending: 'Đang gửi…', thanks: 'Cảm ơn bạn! Tin nhắn đã được gửi.', another: 'Gửi tin khác',
+      errShort: 'Vui lòng viết vài chữ trước.', errSend: 'Chưa gửi được. Vui lòng thử lại sau ít phút.', errLimit: 'Bạn đã gửi khá nhiều tin. Vui lòng thử lại sau.',
+      note: 'Chúng tôi đọc mọi tin nhắn. Chúng tôi không bao giờ hỏi mật khẩu. Lỗi game cũng được tự động báo cho chúng tôi (không kèm thông tin cá nhân).'
+    }
+  };
+
+  var HELP = {
+    en: [
+      ['The goal', 'Get rid of all 13 of your cards first. At the end of a hand the placings pay: 1st +2 stakes, 2nd +1, 3rd −1, 4th −2. The stake is the table amount per hand ($1 to $50). All chips are play money with no cash value.'],
+      ['Card order', 'From low to high: 3 4 5 6 7 8 9 10 J Q K A 2. The 2 is the highest card. Suits from low to high: ♠ ♣ ♦ ♥ (hearts are highest). Red 2s (♦ ♥) are worth more than black 2s.'],
+      ['Starting', 'In the first hand of a table, whoever holds the 3♠ must start and must include the 3♠ in the first play. In later hands the winner of the last hand starts.'],
+      ['Your turn', 'Tap your cards to select them, then PLAY. When you lead, play any combination. When someone else led, play the same type and the same number of cards, but higher. If you cannot or do not want to, press PASS. When everybody else passes, you lead again. XẾP BÀI sorts your hand.'],
+      ['Combinations', 'Single card · Pair · Triple (three of a kind) · Four of a kind · Straight (3 or more cards in a row, never including a 2, for example 5-6-7) · Three pairs in a row (for example 5-5 6-6 7-7) · Four pairs in a row. A straight must match the length of the straight on the table.'],
+      ['Chopping (chặt)', 'A single 2 can be chopped by three pairs in a row, a four of a kind, or four pairs in a row. A pair of 2s can be chopped by a four of a kind or four pairs in a row. Four pairs in a row also beat any four of a kind. You can chop even when it is not your turn: select the cards and press CHẶT / CHOP. The player who is chopped pays you: a black 2 is worth 4 stakes, a red 2 is worth 8, a pair of 2s is worth 12. Chopping a chop is worth 6.'],
+      ['Cóng', 'If somebody goes out first and you never played a single card, you are "cóng" (locked out). You pay 2 stakes plus extra for any 2s and four of a kinds still in your hand.'],
+      ['Thối', 'The player who finishes last pays the winner for the 2s, four of a kinds and runs of pairs still in their hand. This is a house rule you can turn off.'],
+      ['Instant win (tới trắng)', 'If your dealt hand has four 2s, six pairs, or a straight from 3 to A (the dragon), you win at once and every other player pays 4 stakes. Five pairs in a row and four 3s also count when those house rules are on.'],
+      ['House rules', 'The ⚙ HOUSE RULES button lets you turn on or off: five pairs in a row as an instant win, four 3s as an instant win, thối, and refunding a chopped chop. Online, the host of the table chooses them for everybody.'],
+      ['Chips and the WSOP bonus', 'When your bankroll cannot cover the table stake, the refill window opens. The WSOP 4-hour bonus gives +$50 once every 4 hours (saved on your device). The short refill gives +$20. Online tables use their own play-money stack ($100 per seat) that is topped up automatically.'],
+      ['Playing online', 'Press CREATE A TABLE, then COPY INVITE LINK and send the link to friends. The host adds bots, chooses the stake, the bot level and the house rules, and presses START. A table has up to 4 players and empty seats can be bots. You have 20 seconds per move. If you leave during a hand, a bot finishes it for you; open the same link to get your seat back.'],
+      ['Bots', 'Normal bots plan their whole hand and are a fair challenge. Hard bots also count the cards that were played and set traps for your 2s. Bots never look at your cards.']
+    ],
+    vi: [
+      ['Mục tiêu', 'Đánh hết 13 lá bài của mình trước. Cuối ván tính tiền theo thứ hạng: Nhất +2 cược, Nhì +1, Ba −1, Bét −2. Mức cược là số tiền mỗi ván của bàn ($1 đến $50). Mọi chip chỉ là tiền ảo, không có giá trị quy đổi.'],
+      ['Thứ tự bài', 'Từ nhỏ đến lớn: 3 4 5 6 7 8 9 10 J Q K A 2. Quân 2 (heo) lớn nhất. Chất từ thấp đến cao: ♠ ♣ ♦ ♥ (cơ cao nhất). Heo đỏ (♦ ♥) có giá trị hơn heo đen.'],
+      ['Đi đầu', 'Ván đầu tiên của bàn, ai cầm 3♠ phải đánh trước và nước đầu phải có 3♠. Các ván sau, người thắng ván trước đánh trước.'],
+      ['Lượt của bạn', 'Chạm vào bài để chọn rồi bấm PLAY. Khi bạn đi đầu vòng, đánh tổ hợp tùy ý. Khi người khác đã đánh, bạn phải đánh cùng loại, cùng số lá nhưng lớn hơn. Nếu không đánh được hoặc không muốn, bấm PASS (bỏ lượt). Khi mọi người đều bỏ lượt, bạn đánh tiếp. XẾP BÀI để sắp xếp bài.'],
+      ['Các tổ hợp', 'Lá lẻ · Đôi · Sám (ba lá cùng số) · Tứ quý · Sảnh (từ 3 lá liên tiếp, không có 2, ví dụ 5-6-7) · Ba đôi thông (ví dụ 5-5 6-6 7-7) · Bốn đôi thông. Sảnh phải có cùng độ dài với sảnh trên bàn.'],
+      ['Chặt', 'Một con heo bị chặt bởi ba đôi thông, tứ quý hoặc bốn đôi thông. Đôi heo bị chặt bởi tứ quý hoặc bốn đôi thông. Bốn đôi thông cũng chặt được mọi tứ quý. Bạn có thể chặt ngay cả khi chưa đến lượt: chọn bài rồi bấm CHẶT / CHOP. Người bị chặt trả cho bạn: heo đen 4 cược, heo đỏ 8 cược, đôi heo 12 cược. Chặt chồng được 6 cược.'],
+      ['Cóng', 'Nếu có người hết bài trước mà bạn chưa đánh lá nào, bạn bị cóng. Bạn trả 2 cược cộng thêm tiền cho heo và tứ quý còn trên tay.'],
+      ['Thối', 'Người về bét trả cho người thắng tiền thối heo, tứ quý và đôi thông còn trên tay. Đây là luật nhà, có thể tắt.'],
+      ['Tới trắng', 'Nếu bài chia có tứ quý heo, sáu đôi hoặc sảnh rồng (từ 3 đến A), bạn thắng ngay và mỗi người khác trả 4 cược. Năm đôi thông và tứ quý 3 cũng tính khi luật nhà này được bật.'],
+      ['Luật nhà', 'Nút ⚙ HOUSE RULES cho phép bật hoặc tắt: năm đôi thông tới trắng, tứ quý 3 tới trắng, thối, và hoàn tiền chặt chồng. Khi chơi online, chủ bàn chọn luật cho cả bàn.'],
+      ['Chip và thưởng WSOP', 'Khi tiền của bạn không đủ mức cược, cửa sổ nạp thêm sẽ hiện ra. Thưởng WSOP 4 giờ cho +$50 mỗi 4 giờ (lưu trên thiết bị của bạn). Nạp nhanh cho +$20. Bàn online dùng chip riêng ($100 mỗi chỗ) và tự nạp thêm.'],
+      ['Chơi online', 'Bấm CREATE A TABLE, rồi COPY INVITE LINK và gửi liên kết cho bạn bè. Chủ bàn thêm bot, chọn mức cược, độ khó của bot và luật nhà, rồi bấm START. Mỗi bàn tối đa 4 người, chỗ trống có thể là bot. Mỗi nước đi có 20 giây. Nếu bạn rời ván, bot sẽ đánh nốt; mở lại cùng liên kết để lấy lại chỗ.'],
+      ['Bot', 'Bot Normal tính toán cả ván bài và là đối thủ vừa sức. Bot Hard còn đếm bài đã ra và đặt bẫy heo của bạn. Bot không bao giờ nhìn bài của bạn.']
+    ]
+  };
+
+  var lang = 'en';
+  try { lang = localStorage.getItem('cybernova_help_lang') || ((navigator.language || '').toLowerCase().indexOf('vi') === 0 ? 'vi' : 'en'); } catch (e) {}
+  if (!T[lang]) lang = 'en';
+
+  // ------------------------------------------------------------------ styles
+  var css = '' +
+    '#cnfb-overlay{position:fixed;inset:0;background:rgba(3,5,10,.88);display:none;align-items:center;justify-content:center;z-index:100000;padding:10px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
+    '#cnfb-overlay.open{display:flex}' +
+    '#cnfb-box{background:#11141c;border:2px solid #d4af37;border-radius:16px;width:100%;max-width:560px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;box-shadow:0 0 35px rgba(212,175,55,.35);color:#e8eefc;user-select:text;-webkit-user-select:text}' +
+    '#cnfb-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #232f48}' +
+    '#cnfb-head h2{flex:1;margin:0;font-size:15px;font-weight:900;color:#ffd700;letter-spacing:1px}' +
+    '.cnfb-btn{background:#1e2638;border:1px solid #4a5a78;color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;min-height:36px}' +
+    '.cnfb-btn.on{border-color:#ffd700;color:#ffd700}.cnfb-btn.gold{background:linear-gradient(135deg,#ffd700,#d4af37);color:#000;border-color:#d4af37}.cnfb-btn:disabled{opacity:.5;cursor:not-allowed}' +
+    '#cnfb-tabs{display:flex;gap:6px;padding:10px 14px 0}' +
+    '#cnfb-body{padding:12px 14px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}' +
+    '#cnfb-body details{background:#0d121d;border:1px solid #232f48;border-radius:10px;margin-bottom:8px}' +
+    '#cnfb-body summary{cursor:pointer;padding:11px 12px;font-weight:800;font-size:13px;color:#ffd700;list-style:none}' +
+    '#cnfb-body summary::-webkit-details-marker{display:none}#cnfb-body summary:before{content:"▸ "}#cnfb-body details[open] summary:before{content:"▾ "}' +
+    '#cnfb-body details p{margin:0;padding:0 12px 12px;font-size:13px;line-height:1.55;color:#d6def0}' +
+    '.cnfb-f label{display:block;font-size:11px;font-weight:800;color:#ffd700;margin:12px 0 5px}' +
+    '.cnfb-f select,.cnfb-f textarea,.cnfb-f input[type=text]{width:100%;background:#0d121d;border:1.5px solid #2a3850;color:#fff;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit;user-select:text;-webkit-user-select:text}' +
+    '.cnfb-f textarea{min-height:120px;resize:vertical}.cnfb-f select:focus,.cnfb-f textarea:focus,.cnfb-f input:focus{border-color:#ffd700}' +
+    '.cnfb-f .chk{display:flex;gap:8px;align-items:flex-start;font-weight:600;color:#b8c4de;font-size:12px;margin-top:12px}.cnfb-f .chk input{width:20px;height:20px;accent-color:#d4af37;margin:0;flex:0 0 auto}' +
+    '.cnfb-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}' +
+    '.cnfb-msg{font-size:12px;font-weight:700;padding:9px 10px;border-radius:8px;margin-top:12px}.cnfb-msg.err{background:rgba(231,76,60,.15);border:1px solid #e74c3c;color:#ff9a9a}.cnfb-msg.ok{background:rgba(46,204,113,.14);border:1px solid #2ecc71;color:#8dffd2}' +
+    '.cnfb-note{font-size:11px;color:#8a9bb8;line-height:1.5;margin-top:12px}.cnfb-cnt{font-size:10px;color:#6f7f9f;text-align:right;margin-top:3px}';
+  var st = document.createElement('style'); st.id = 'cnfb-css'; st.textContent = css; document.head.appendChild(st);
+
+  // ------------------------------------------------------------------ window
+  var overlay, body, tabHelp, tabFb, titleEl, closeBtn, btnEn, btnVi, tab = 'help', sentOnce = false;
+  function el(tag, attrs, text) { var e = document.createElement(tag); if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; }
+
+  function build() {
+    if (overlay) return;
+    overlay = el('div', { id: 'cnfb-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Help and feedback' });
+    var box = el('div', { id: 'cnfb-box' });
+    var head = el('div', { id: 'cnfb-head' });
+    titleEl = el('h2'); head.appendChild(titleEl);
+    btnEn = el('button', { type: 'button', 'class': 'cnfb-btn' }, 'EN'); btnVi = el('button', { type: 'button', 'class': 'cnfb-btn' }, 'VI');
+    btnEn.onclick = function () { setLang('en'); }; btnVi.onclick = function () { setLang('vi'); };
+    closeBtn = el('button', { type: 'button', 'class': 'cnfb-btn', 'aria-label': 'Close' }, '✕'); closeBtn.onclick = closeHelp;
+    head.appendChild(btnEn); head.appendChild(btnVi); head.appendChild(closeBtn);
+    var tabs = el('div', { id: 'cnfb-tabs' });
+    tabHelp = el('button', { type: 'button', 'class': 'cnfb-btn' }); tabFb = el('button', { type: 'button', 'class': 'cnfb-btn' });
+    tabHelp.onclick = function () { show('help'); }; tabFb.onclick = function () { show('feedback'); };
+    tabs.appendChild(tabHelp); tabs.appendChild(tabFb);
+    body = el('div', { id: 'cnfb-body' });
+    box.appendChild(head); box.appendChild(tabs); box.appendChild(body); overlay.appendChild(box);
+    overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeHelp(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) closeHelp(); });
+    document.body.appendChild(overlay);
+  }
+
+  function setLang(l) { lang = l; try { localStorage.setItem('cybernova_help_lang', l); } catch (e) {} render(); }
+
+  function render() {
+    var t = T[lang];
+    titleEl.textContent = t.title; tabHelp.textContent = t.tabHelp; tabFb.textContent = t.tabFb;
+    tabHelp.className = 'cnfb-btn' + (tab === 'help' ? ' on' : ''); tabFb.className = 'cnfb-btn' + (tab === 'feedback' ? ' on' : '');
+    btnEn.className = 'cnfb-btn' + (lang === 'en' ? ' on' : ''); btnVi.className = 'cnfb-btn' + (lang === 'vi' ? ' on' : '');
+    body.textContent = '';
+    if (tab === 'help') {
+      HELP[lang].forEach(function (s, i) { var d = el('details'); if (i === 0) d.setAttribute('open', ''); d.appendChild(el('summary', null, s[0])); d.appendChild(el('p', null, s[1])); body.appendChild(d); });
+      var b = el('button', { type: 'button', 'class': 'cnfb-btn gold', style: 'width:100%;margin-top:6px;min-height:42px' }, t.tabFb + ' →'); b.onclick = function () { show('feedback'); }; body.appendChild(b);
+    } else renderForm(t);
+  }
+
+  function renderForm(t) {
+    var f = el('div', { 'class': 'cnfb-f' });
+    f.appendChild(el('label', { 'for': 'cnfb-kind' }, t.kind));
+    var sel = el('select', { id: 'cnfb-kind' });
+    ['bug', 'idea', 'question', 'other'].forEach(function (k) { sel.appendChild(el('option', { value: k }, t.kinds[k])); });
+    f.appendChild(sel);
+    f.appendChild(el('label', { 'for': 'cnfb-text' }, t.msg));
+    var ta = el('textarea', { id: 'cnfb-text', maxlength: '1000', placeholder: t.msgPh }); f.appendChild(ta);
+    var cnt = el('div', { 'class': 'cnfb-cnt' }, '0 / 1000'); f.appendChild(cnt);
+    ta.addEventListener('input', function () { cnt.textContent = ta.value.length + ' / 1000'; });
+    f.appendChild(el('label', { 'for': 'cnfb-contact' }, t.contact));
+    f.appendChild(el('input', { type: 'text', id: 'cnfb-contact', maxlength: '80', autocomplete: 'off' }));
+    var chk = el('label', { 'class': 'chk' }); var cb = el('input', { type: 'checkbox', id: 'cnfb-tech' }); cb.checked = true; chk.appendChild(cb); chk.appendChild(el('span', null, t.tech)); f.appendChild(chk);
+    f.appendChild(el('input', { type: 'text', id: 'cnfb-web', name: 'website', 'class': 'cnfb-hp', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' }));   // spam trap
+    var msg = el('div', { id: 'cnfb-status' }); f.appendChild(msg);
+    var send = el('button', { type: 'button', 'class': 'cnfb-btn gold', style: 'width:100%;margin-top:14px;min-height:44px', id: 'cnfb-send' }, t.send); f.appendChild(send);
+    f.appendChild(el('div', { 'class': 'cnfb-note' }, t.note));
+    send.onclick = function () { submit(t, ta, sel, send, msg, f); };
+    body.appendChild(f);
+  }
+
+  function setStatus(node, kind, text) { node.textContent = ''; if (text) node.appendChild(el('div', { 'class': 'cnfb-msg ' + kind }, text)); }
+
+  function context() { try { return typeof window.FEEDBACK_CONTEXT === 'function' ? String(window.FEEDBACK_CONTEXT() || '') : ''; } catch (e) { return ''; } }
+
+  function submit(t, ta, sel, send, status, form) {
+    var text = ta.value.trim();
+    if (text.length < 3) { setStatus(status, 'err', t.errShort); return; }
+    var tech = document.getElementById('cnfb-tech').checked;
+    var payload = {
+      kind: sel.value, message: text, contact: document.getElementById('cnfb-contact').value, website: document.getElementById('cnfb-web').value,
+      page: PAGE, version: VERSION,
+      ua: tech ? navigator.userAgent : '', screen: tech ? (window.innerWidth + 'x' + window.innerHeight) : '', extra: tech ? context() : ''
+    };
+    send.disabled = true; send.textContent = t.sending; setStatus(status, '', '');
+    fetch(API + '/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; }); })
+      .then(function (r) {
+        if (r.status === 200) {
+          sentOnce = true; body.textContent = '';
+          body.appendChild(el('div', { 'class': 'cnfb-msg ok', style: 'font-size:14px;text-align:center;padding:18px' }, t.thanks));
+          var again = el('button', { type: 'button', 'class': 'cnfb-btn', style: 'width:100%;margin-top:12px' }, t.another); again.onclick = function () { render(); }; body.appendChild(again);
+        } else {
+          send.disabled = false; send.textContent = t.send;
+          setStatus(status, 'err', r.status === 429 ? t.errLimit : (r.j && r.j.error && r.status === 400 ? r.j.error : t.errSend));
+        }
+      })
+      .catch(function () { send.disabled = false; send.textContent = t.send; setStatus(status, 'err', t.errSend); });
+  }
+
+  function show(which) { tab = which; render(); if (which === 'feedback') { var ta = document.getElementById('cnfb-text'); if (ta) setTimeout(function () { try { ta.focus(); } catch (e) {} }, 50); } }
+  function openHelp(which) { build(); tab = which === 'feedback' ? 'feedback' : 'help'; render(); overlay.classList.add('open'); }
+  function closeHelp() { if (overlay) overlay.classList.remove('open'); }
+  window.openHelp = openHelp; window.openFeedback = function () { openHelp('feedback'); }; window.closeHelp = closeHelp;
+
+  // ------------------------------------------------------------------ automatic crash reports (no personal details, at most 3 per visit)
+  var autoSent = 0, seen = {};
+  function reportCrash(message) {
+    message = String(message || '').slice(0, 300);
+    if (autoSent >= 3 || !message || seen[message] || /ResizeObserver|Script error/i.test(message)) return;
+    seen[message] = 1; autoSent++;
+    try {
+      fetch(API + '/api/feedback', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind: 'auto-error', message: message, page: PAGE, version: VERSION, ua: navigator.userAgent, screen: window.innerWidth + 'x' + window.innerHeight, extra: context() }) }).catch(function () {});
+    } catch (e) {}
+  }
+  window.addEventListener('error', function (e) {
+    if (e && e.filename && e.filename.indexOf(location.origin) !== 0) return;               // ignore browser extensions and other sites
+    reportCrash((e.message || 'error') + ' @ ' + ((e.filename || '').split('/').pop() || PAGE) + ':' + (e.lineno || 0));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason; reportCrash('Promise: ' + (r && r.message ? r.message : String(r)));
+  });
+})();
+  </script>
   <div id="app-container">
     <header>
       <div class="brand-container">
@@ -385,6 +595,7 @@
       <div class="header-actions">
         <div class="stat-badge" id="hdr-stake-badge" style="color:#ffd700; border-color:#ffd700;">TABLE: $5</div>
         <select class="stake-select" id="ai-difficulty" onchange="changeDifficulty(this.value)">
+          <option value="easy">🌱 Easy AI (for beginners)</option>
           <option value="normal">⚡ Normal AI</option>
           <option value="hard">🧠 Hard AI (Card Counting & Traps)</option>
         </select>
@@ -395,6 +606,7 @@
           <button class="btn-hdr" id="btn-music" onclick="toggleMusic()">🎵 MUSIC: OFF</button>
           <button class="btn-hdr" id="btn-rules" onclick="openRules()">⚙ HOUSE RULES</button>
           <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
+          <button class="btn-hdr" onclick="openHelp()">💬 HELP</button>
           <button class="btn-hdr" onclick="logoutUser()">LOGOUT</button>
         </div>
       </div>
@@ -1493,6 +1705,13 @@
       },
       hard: {
         D: 14, B: 120, WASTE: 0, LEADLEN: 0, BOMBLEAD: 6, NOISE: 0
+      },
+      // EASY: for beginners. Plans like Normal but makes mistakes on purpose:
+      easy: {
+        D: 14, B: 24, WASTE: 30, LEADLEN: 0.5, BOMBLEAD: 6, NOISE: 0.10,
+        RANDOM: 0.6,   // chance of just picking any legal play (leads a high card, wastes a 2, ...)
+        PASS: 0.3,     // chance of passing on a trick it could take
+        MISSCHOP: 0.8   // chance of missing a chop it could make
       }
     };
 
@@ -1675,7 +1894,8 @@
 
     function findBestBotPlay(hand, tableCombo, levelName) {
       const hard = (levelName || currentDifficulty) === 'hard';
-      const P = hard ? AI_CFG.hard : AI_CFG.normal;
+      const easy = (levelName || currentDifficulty) === 'easy';
+      const P = hard ? AI_CFG.hard : (easy ? AI_CFG.easy : AI_CFG.normal);
       const selfIdx = currentTurn;
       const self = players[selfIdx];
       const model = aiBuildModel(hand, hard, P.D);
@@ -1731,6 +1951,7 @@
 
       // ---------------- LEADING ----------------
       if (leading) {
+        if (easy && Math.random() < P.RANDOM) return cands[Math.floor(Math.random() * cands.length)];
         let best = null, bestScore = Infinity;
         for (const c of cands) {
           const r = remainderCost(c);
@@ -1772,6 +1993,11 @@
         if (score < bestScore) { bestScore = score; best = c; }
       }
 
+      if (easy) {
+        if (Math.random() < P.RANDOM) return options[Math.floor(Math.random() * options.length)];   // any legal play
+        if (best && aiBountyUnits(best.combo, tableCombo) > 0 && Math.random() < P.MISSCHOP) return null;
+        if (best && Math.random() < P.PASS) return null;
+      }
       if (!best) return null;
       if (bestScore >= B) return null;
       if (!hard && ownerCards > 3 && Math.random() < P.NOISE && B - bestScore < 10) return null;
