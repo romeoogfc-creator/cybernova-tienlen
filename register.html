@@ -12,7 +12,10 @@
   <meta property="og:image" content="https://romeoogfc-creator.github.io/cybernova-tienlen/share.png">
   <meta property="og:url" content="https://romeoogfc-creator.github.io/cybernova-tienlen/register.html">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b0e17">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1370786646765613" crossorigin="anonymous"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body {
@@ -492,9 +495,11 @@
       if (!CN.adsEnabled()) { resolve(false); return; }
       try {
         if (!CN.ads.ready) {
-          var sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
-          sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(CN.ads.client);
-          sc.setAttribute('data-ad-frequency-hint', '30s'); document.head.appendChild(sc);
+          if (!document.querySelector('script[src*="adsbygoogle.js"]')) {
+            var sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
+            sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(CN.ads.client);
+            sc.setAttribute('data-ad-frequency-hint', '30s'); document.head.appendChild(sc);
+          }
           window.adsbygoogle = window.adsbygoogle || [];
           window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
           window.adConfig({ preloadAdBreaks: 'on', sound: 'on' }); CN.ads.ready = true;
