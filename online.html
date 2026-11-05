@@ -508,6 +508,21 @@
     if (full || a < 10000) s = a.toLocaleString('en-US'); else if (a < 1e6) s = trimNum(a / 1000, a < 100000 ? 1 : 0) + 'K'; else s = trimNum(a / 1e6, 2) + 'M';
     return (n < 0 ? '-' : '') + s;
   };
+  // permanent: signs the person in again to prove it is them, wipes the account on the server, then removes the sign-in record
+  CN.deleteAccount = async function (pw) {
+    try {
+      var f = await loadFirebase(), u = CN.user(); if (!u) return { error: 'Please sign in again.' };
+      if (CN.hasPassword()) await f.m.reauthenticateWithCredential(u, f.m.EmailAuthProvider.credential(u.email, pw || ''));
+      else await f.m.reauthenticateWithPopup(u, new f.m.GoogleAuthProvider());
+      var r = await CN.call('delete', {});
+      if (!(r.j && r.j.ok)) return { error: (r.j && r.j.error) || 'Could not reach the server.' };
+      try { await f.m.deleteUser(u); } catch (e) {}
+      account = null;
+      ['cybernova_user_chips', 'cybernova_user_name', 'cyberNova_currentUser', 'cybernova_settle_queue', 'cybernova_selected_stake', 'cybernova_online_table'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+      try { await f.m.signOut(f.auth); } catch (e) {}
+      return { ok: true };
+    } catch (e) { return { error: CN.errorText(e) }; }
+  };
   CN.act = async function (name) {
     try { var r = await CN.call(name, {}); if (r.j && r.j.account) setAccount(r.j.account); return r.j || { error: 'Could not reach the server.' }; } catch (e) { return { error: 'Could not reach the server.' }; }
   };
@@ -690,6 +705,21 @@
       box.appendChild(el('div', { 'class': 'cnp-note', style: 'margin-top:14px' }, 'You signed in with Google, so your email and password are managed by your Google account.'));
     }
     box.appendChild(el('div', { 'class': 'cnp-sec', style: 'margin-top:16px' }));
+    box.appendChild(el('h3', { style: 'color:#ff7b7b' }, 'Delete my account'));
+    box.appendChild(el('div', { 'class': 'cnp-note' }, 'This permanently deletes your account, your chips and your profile, and signs you out. It cannot be undone.'));
+    var dpw = null;
+    if (CN.hasPassword()) { box.appendChild(el('label', { 'for': 'cnp-dpw' }, 'Your current password')); dpw = el('input', { type: 'password', id: 'cnp-dpw', autocomplete: 'current-password' }); box.appendChild(dpw); }
+    box.appendChild(el('label', { 'for': 'cnp-dconf' }, 'Type DELETE to confirm')); var dconf = el('input', { type: 'text', id: 'cnp-dconf', autocomplete: 'off' }); box.appendChild(dconf);
+    var m4 = el('div'); box.appendChild(m4);
+    var b4 = el('button', { type: 'button', 'class': 'cnp-btn red', style: 'width:100%;margin-top:8px' }, 'DELETE MY ACCOUNT FOREVER'); box.appendChild(b4);
+    b4.onclick = async function () {
+      if (dconf.value.trim().toUpperCase() !== 'DELETE') { msg(m4, 'err', 'Please type DELETE to confirm.'); return; }
+      b4.disabled = true; msg(m4, 'ok', 'Deleting...');
+      var r = await CN.deleteAccount(dpw ? dpw.value : null);
+      if (r.ok) { msg(m4, 'ok', 'Your account was deleted. Goodbye!'); setTimeout(function () { location.href = 'register.html'; }, 1500); }
+      else { msg(m4, 'err', r.error || 'Could not delete the account.'); b4.disabled = false; }
+    };
+    box.appendChild(el('div', { 'class': 'cnp-sec', style: 'margin-top:16px' }));
     var rowb = el('div', { 'class': 'cnp-row', style: 'margin-top:12px' });
     var out = el('button', { type: 'button', 'class': 'cnp-btn red', style: 'flex:1' }, 'SIGN OUT'); var close = el('button', { type: 'button', 'class': 'cnp-btn', style: 'flex:1' }, 'CLOSE');
     rowb.appendChild(out); rowb.appendChild(close); box.appendChild(rowb);
@@ -817,7 +847,7 @@
       ['Other data', 'Messages you send through Send feedback are stored so we can read them. When the game crashes it can send us a short error report without personal details. If video rewards are switched on, the advertising provider may use cookies or device identifiers under its own privacy policy. We do not sell your personal data.'],
       ['Fair play', 'Please play fair: no cheating, no bots or automation, no abusing bugs. We may correct chip balances, or suspend accounts, that break these rules.'],
       ['The service', 'The game is provided as is and may change, be interrupted or be stopped at any time. Chips and accounts are not property and have no value.'],
-      ['Your data', 'To see, correct or delete the data we hold about you, send us a message in Send feedback and include the email of your account.']
+      ['Your data', 'You can delete your account yourself at any time: open Profile, then Delete my account. That removes your account, chips and profile. To see or correct your data, or to remove feedback messages you sent, or if you cannot sign in, send us a message in Send feedback and include the email of your account.']
     ],
     vi: [
       ['Chỉ là tiền ảo', 'CyberNova là game bài miễn phí để giải trí. Chip chỉ là điểm trong game, không có giá trị quy đổi ra tiền. Chip không thể đổi lấy tiền, giải thưởng hay bất cứ thứ gì có giá trị, và không có cách rút chip. Chơi ở đây không có cơ hội thắng tiền thật hay giải thưởng.'],
@@ -826,7 +856,7 @@
       ['Dữ liệu khác', 'Tin nhắn bạn gửi qua Gửi góp ý được lưu lại để chúng tôi đọc. Khi game bị lỗi, game có thể gửi cho chúng tôi một báo cáo ngắn không kèm thông tin cá nhân. Nếu bật tính năng xem video nhận thưởng, nhà cung cấp quảng cáo có thể dùng cookie hoặc mã thiết bị theo chính sách riêng tư của họ. Chúng tôi không bán dữ liệu cá nhân của bạn.'],
       ['Chơi công bằng', 'Vui lòng chơi công bằng: không gian lận, không dùng bot hay tự động hóa, không lợi dụng lỗi. Chúng tôi có thể điều chỉnh số chip hoặc khóa tài khoản vi phạm.'],
       ['Dịch vụ', 'Game được cung cấp nguyên trạng và có thể thay đổi, gián đoạn hoặc dừng bất cứ lúc nào. Chip và tài khoản không phải tài sản và không có giá trị.'],
-      ['Dữ liệu của bạn', 'Để xem, sửa hoặc xóa dữ liệu chúng tôi lưu về bạn, hãy gửi tin trong mục Gửi góp ý kèm email của tài khoản.']
+      ['Dữ liệu của bạn', 'Bạn có thể tự xóa tài khoản bất cứ lúc nào: mở Profile, rồi chọn Delete my account. Việc này xóa tài khoản, chip và hồ sơ của bạn. Để xem hoặc sửa dữ liệu, xóa tin góp ý bạn đã gửi, hoặc nếu bạn không đăng nhập được, hãy gửi tin trong mục Gửi góp ý kèm email của tài khoản.']
     ]
   };
 
