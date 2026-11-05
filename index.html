@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b0e17">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>CYBERNOVA: Tiến Lên Miền Nam Pro</title>
-  <link rel="manifest" href="./manifest.json">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #07090e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #fff; touch-action: manipulation; }
@@ -422,10 +424,10 @@
     var j = await r.json().catch(function () { return {}; });
     return { status: r.status, j: j };
   };
-  function setAccount(a) { if (!a) return; account = a; st('cybernova_user_chips', Number(a.balance).toFixed(2)); st('cybernova_user_name', a.name); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
+  function setAccount(a) { if (!a) return; account = a; st('cybernova_user_chips', String(Math.round(Number(a.balance)))); st('cybernova_user_name', a.name); listeners.forEach(function (fn) { try { fn(account); } catch (e) {} }); }
   CN.account = function () { return account; };
   // the online table reports the live balance: keep the shared account in step (quietly, no server message)
-  CN.setBalanceQuiet = function (n) { if (account && typeof n === 'number' && isFinite(n)) { account.balance = Math.round(n * 100) / 100; st('cybernova_user_chips', account.balance.toFixed(2)); } };
+  CN.setBalanceQuiet = function (n) { if (account && typeof n === 'number' && isFinite(n)) { account.balance = Math.round(n); st('cybernova_user_chips', String(account.balance)); } };
   CN.onChange = function (fn) { listeners.push(fn); };
   CN.apiBase = API;
   // load (or create, the first time) this person's account
@@ -436,6 +438,57 @@
   CN.bonus = async function (kind) {
     try { var r = await CN.call('bonus', { kind: kind }); if (r.j && r.j.account) setAccount(r.j.account); return r.j || { error: 'Could not reach the server.' }; } catch (e) { return { error: 'Could not reach the server.' }; }
   };
+
+  // chips are whole numbers shown with commas, or short (12.3K, 1.2M) where space is tight
+  function trimNum(x, d) { return String(parseFloat(x.toFixed(d))); }
+  CN.fmt = function (n, full) {
+    n = Math.round(Number(n) || 0); var a = Math.abs(n), s;
+    if (full || a < 10000) s = a.toLocaleString('en-US'); else if (a < 1e6) s = trimNum(a / 1000, a < 100000 ? 1 : 0) + 'K'; else s = trimNum(a / 1e6, 2) + 'M';
+    return (n < 0 ? '-' : '') + s;
+  };
+  CN.act = async function (name) {
+    try { var r = await CN.call(name, {}); if (r.j && r.j.account) setAccount(r.j.account); return r.j || { error: 'Could not reach the server.' }; } catch (e) { return { error: 'Could not reach the server.' }; }
+  };
+  CN.daily = function () { return CN.act('daily'); };
+  CN.spin = function () { return CN.act('spin'); };
+  // Rewarded video. The server only grants chips when it has switched video rewards on (ADS_ENABLED), and the page only shows the button when an ad network is configured.
+  CN.ads = { client: '', ready: false };                           // put the publisher id in CN.ads.client once the ad account is approved (looks like ca-pub-1234567890123456)
+  CN.adsEnabled = function () { return !!CN.ads.client; };
+  CN.showRewardedAd = function () {
+    return new Promise(function (resolve) {
+      if (!CN.adsEnabled()) { resolve(false); return; }
+      try {
+        if (!CN.ads.ready) {
+          var sc = document.createElement('script'); sc.async = true; sc.crossOrigin = 'anonymous';
+          sc.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(CN.ads.client);
+          sc.setAttribute('data-ad-frequency-hint', '30s'); document.head.appendChild(sc);
+          window.adsbygoogle = window.adsbygoogle || [];
+          window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
+          window.adConfig({ preloadAdBreaks: 'on', sound: 'on' }); CN.ads.ready = true;
+        }
+        var viewed = false, done = false;
+        var finish = function (v) { if (!done) { done = true; resolve(v); } };
+        window.adBreak({ type: 'reward', name: 'free-chips',
+          beforeReward: function (showAd) { showAd(); }, adViewed: function () { viewed = true; }, adDismissed: function () { finish(false); },
+          adBreakDone: function () { finish(viewed); } });
+        setTimeout(function () { finish(viewed); }, 90000);
+      } catch (e) { resolve(false); }
+    });
+  };
+  CN.adReward = async function () {
+    var ok = await CN.showRewardedAd();
+    if (!ok) return { error: 'No video was available right now. Please try again in a moment.' };
+    return CN.act('adreward');
+  };
+  // share the game address (the sign-in page) with a friend
+  CN.invite = async function () {
+    var u = location.href.split('#')[0].split('?')[0].replace(/[^\/]*$/, '') + 'register.html';
+    var text = 'Come play CyberNova Tiến Lên with me! Free chips every day. Play money only, 18+.';
+    try { if (navigator.share) { await navigator.share({ title: 'CyberNova Tiến Lên', text: text, url: u }); return 'Thanks for sharing!'; } } catch (e) { if (e && e.name === 'AbortError') return ''; }
+    try { await navigator.clipboard.writeText(text + ' ' + u); return 'Invite link copied. Paste it to your friends!'; } catch (e) { window.prompt('Copy this invite:', text + ' ' + u); return ''; }
+  };
+  // a small dot on the Free Chips button when something is ready
+  CN.freeReady = function () { var a = account; if (!a) return false; var n = Date.now(); return !!(a.daily && !(a.daily.readyAt > n)) || !!(a.spin && !(a.spin.readyAt > n)); };
 
   // single-player results are sent to the account. If the connection is down they wait in a small queue and are sent later.
   var QK = 'cybernova_settle_queue';
@@ -458,7 +511,7 @@
   };
   CN.settle = async function (delta, stake) {
     var nonce = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-    var q = readQ(); q.push({ delta: Math.round(delta * 100) / 100, stake: stake, nonce: nonce }); writeQ(q);
+    var q = readQ(); q.push({ delta: Math.round(delta), stake: stake, nonce: nonce }); writeQ(q);
     return CN.flush();
   };
 
@@ -524,7 +577,7 @@
     pending = a.avatar || '';
     box.textContent = '';
     box.appendChild(el('h2', null, 'YOUR PROFILE'));
-    box.appendChild(el('div', { 'class': 'cnp-note' }, 'Signed in as ' + (a.email || 'your account') + '  ·  Balance $' + Number(a.balance).toFixed(2) + '. This is the same account and the same money on every page.'));
+    box.appendChild(el('div', { 'class': 'cnp-note' }, 'Signed in as ' + (a.email || 'your account') + '  ·  ' + CN.fmt(a.balance, true) + ' chips. This is the same account and the same chips on every page. Chips are game credits with no cash value.'));
     var row = el('div', { 'class': 'cnp-row', style: 'margin-top:12px' });
     var av = el('img', { 'class': 'cnp-av', alt: '' }); av.src = a.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23d4af37'/><text x='50' y='64' font-size='46' text-anchor='middle'>👤</text></svg>"; row.appendChild(av);
     var col = el('div', { style: 'flex:1;min-width:0' }); var file = el('input', { type: 'file', accept: 'image/*', style: 'font-size:12px;color:#dfe8f7;width:100%' }); col.appendChild(file);
@@ -583,31 +636,47 @@
     ov.classList.add('open');
   };
   CN.closeProfile = function () { if (ov) ov.classList.remove('open'); };
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') CN.closeProfile(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { CN.closeProfile(); if (rov) rov.style.display = 'none'; } });
 
-  // ------------------------------------------------------------------ a small "get free chips" window (used when you are out of chips)
+  // ------------------------------------------------------------------ the "Free chips" window (daily reward, free spin, video, refills)
   var rov = null;
-  CN.openRefill = function (onDone) {
-    if (!rov) { rov = el('div', { id: 'cnp-overlay2', style: 'position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100002;padding:10px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif' }); document.body.appendChild(rov); }
+  function waitText(readyAt) { var m = Math.ceil((readyAt - Date.now()) / 60000); return m >= 60 ? 'ready in ' + Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : 'ready in ' + m + ' min'; }
+  CN.openRefill = function (onDone, opts) {
+    if (!rov) { rov = el('div', { id: 'cnp-overlay2', style: 'position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100002;padding:10px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif' }); document.body.appendChild(rov); rov.addEventListener('mousedown', function (e) { if (e.target === rov) rov.style.display = 'none'; }); }
     var a = account || { balance: 0, bonus: {} };
     rov.textContent = '';
-    var b = el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:14px;width:100%;max-width:360px;padding:18px;text-align:center;color:#e8eefc' });
-    b.appendChild(el('div', { style: 'font-size:18px;font-weight:900;color:#ffd700;margin-bottom:6px' }, 'OUT OF CHIPS?'));
-    b.appendChild(el('div', { style: 'font-size:12px;color:#b0c4de;margin-bottom:12px' }, 'Your balance is $' + Number(a.balance).toFixed(2) + '. Free chips go straight into your account.'));
+    var b = el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:14px;width:100%;max-width:380px;max-height:92vh;overflow-y:auto;padding:16px;text-align:center;color:#e8eefc' });
+    var broke = opts && opts.broke;
+    b.appendChild(el('div', { style: 'font-size:18px;font-weight:900;color:#ffd700;margin-bottom:4px' }, broke ? 'OUT OF CHIPS?' : '🎁 FREE CHIPS'));
+    b.appendChild(el('div', { style: 'font-size:12px;color:#b0c4de;margin-bottom:10px' }, 'You have ' + CN.fmt(a.balance, true) + ' chips. Free chips go straight into your account. Chips are game credits with no cash value.'));
     var msgBox = el('div');
-    function line(kind, label) {
-      var info = (a.bonus || {})[kind] || {}, btn = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin:5px 0;min-height:44px' }, label);
-      var wait = info.readyAt && info.readyAt > Date.now() ? Math.ceil((info.readyAt - Date.now()) / 60000) : 0;
-      if (wait) { btn.disabled = true; btn.textContent = label + ' · ready in ' + (wait >= 60 ? Math.floor(wait / 60) + ' h ' + (wait % 60) + ' min' : wait + ' min'); }
-      else if (info.eligible === false) { btn.disabled = true; btn.textContent = label + ' · when under $' + (kind === '4h' ? 50 : 10); }
-      btn.onclick = async function () { btn.disabled = true; var r = await CN.bonus(kind); if (r.ok) { rov.style.display = 'none'; if (onDone) onDone(r.account); } else { msg(msgBox, 'err', r.error || 'Not available right now.'); btn.disabled = false; } };
+    function row(label, info, act, okText) {
+      var btn = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin:5px 0;min-height:44px' }, label);
+      if (info.wait) { btn.disabled = true; btn.textContent = label + ' · ' + info.wait; }
+      btn.onclick = async function () { btn.disabled = true; var r = await act(); if (r.ok) { msg(msgBox, 'ok', okText ? okText(r) : 'Done!'); if (onDone) onDone(r.account || account); setTimeout(function () { if (rov && rov.style.display !== 'none') CN.openRefill(onDone, opts); }, 1600); } else { msg(msgBox, 'err', r.error || 'Not available right now.'); btn.disabled = false; } };
       b.appendChild(btn);
     }
-    line('quick', '🎁 Free refill  +$20'); line('4h', '⏳ 4-hour bonus  +$50');
+    var now = Date.now(), d = a.daily || {}, sp = a.spin || {}, ad = a.ad || {}, bo = a.bonus || {};
+    if (a.daily) {
+      var dayAmt = (d.amounts || [])[(d.day || 1) - 1] || 0;
+      b.appendChild(el('div', { style: 'display:flex;gap:3px;justify-content:center;margin:2px 0 4px' }, (d.amounts || []).map(function (x, i) {
+        return el('div', { style: 'flex:1;white-space:pre-line;border-radius:6px;padding:4px 0;font-size:9px;font-weight:800;border:1px solid ' + (i + 1 === d.day ? '#ffd700' : '#2a3850') + ';background:' + (i + 1 === d.day ? 'rgba(255,215,0,.18)' : '#0d121d') + ';color:' + (i + 1 === d.day ? '#ffd700' : '#8a9bb8') }, 'DAY ' + (i + 1) + '\n' + CN.fmt(x));
+      })));
+      row('📅 Daily reward · day ' + d.day + ': +' + CN.fmt(dayAmt, true), { wait: d.readyAt > now ? waitText(d.readyAt) : '' }, CN.daily, function (r) { return 'Day ' + r.day + ' reward: +' + CN.fmt(r.reward, true) + ' chips!'; });
+      row('🎡 Free daily spin (win up to ' + CN.fmt(Math.max.apply(null, sp.prizes || [0]), true) + ')', { wait: sp.readyAt > now ? waitText(sp.readyAt) : '' }, CN.spin, function (r) { return '🎡 You won ' + CN.fmt(r.reward, true) + ' chips!'; });
+    }
+    if (a.ad && CN.adsEnabled()) {
+      var adw = ad.left <= 0 ? 'no more videos today' : (ad.eligible === false ? 'when under ' + CN.fmt(ad.below, true) : (ad.readyAt > now ? waitText(ad.readyAt) : ''));
+      row('🎬 Watch a video: +' + CN.fmt(ad.amount, true) + ' (' + ad.left + ' left today)', { wait: adw }, CN.adReward, function (r) { return '+' + CN.fmt(r.reward, true) + ' chips. Thank you for watching!'; });
+    }
+    if (bo.quick) row('🎁 Free refill  +' + CN.fmt(bo.quick.amount, true), { wait: bo.quick.readyAt > now ? waitText(bo.quick.readyAt) : (bo.quick.eligible === false ? 'when under ' + CN.fmt(10000, true) : '') }, function () { return CN.bonus('quick'); }, function () { return 'Refill added!'; });
+    if (bo['4h']) row('⏳ 4-hour bonus  +' + CN.fmt(bo['4h'].amount, true), { wait: bo['4h'].readyAt > now ? waitText(bo['4h'].readyAt) : (bo['4h'].eligible === false ? 'when under ' + CN.fmt(50000, true) : '') }, function () { return CN.bonus('4h'); }, function () { return 'Bonus added!'; });
     b.appendChild(msgBox);
     var c = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, 'CLOSE'); c.onclick = function () { rov.style.display = 'none'; }; b.appendChild(c);
     rov.appendChild(b); rov.style.display = 'flex';
   };
+  CN.openFree = function (onDone) { return CN.openRefill(onDone, {}); };
+  try { if ('serviceWorker' in navigator && location.protocol !== 'file:') window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); } catch (e) {}
 })();
   </script>
   <script>
@@ -626,7 +695,7 @@
   // ------------------------------------------------------------------ text (English / Vietnamese)
   var T = {
     en: {
-      title: 'HELP & FEEDBACK', tabHelp: 'How to play', tabFb: 'Send feedback', close: 'Close',
+      title: 'HELP & FEEDBACK', tabHelp: 'How to play', tabFb: 'Send feedback', tabTerms: 'Terms & Privacy', close: 'Close',
       kind: 'What is it about?', kinds: { bug: '🐞 Something is broken', idea: '💡 An idea', question: '❓ A question', other: '💬 Something else' },
       msg: 'Your message', msgPh: 'Tell us what happened or what you would like. The more detail, the better.',
       contact: 'Your email or name (optional, only if you want a reply)', tech: 'Include technical details (page, screen size, browser) to help us find the problem',
@@ -635,7 +704,7 @@
       note: 'We read every message. We never ask for passwords. Crashes in the game are also reported to us automatically (no personal details).'
     },
     vi: {
-      title: 'TRỢ GIÚP & GÓP Ý', tabHelp: 'Cách chơi', tabFb: 'Gửi góp ý', close: 'Đóng',
+      title: 'TRỢ GIÚP & GÓP Ý', tabHelp: 'Cách chơi', tabFb: 'Gửi góp ý', tabTerms: 'Điều khoản & Riêng tư', close: 'Đóng',
       kind: 'Bạn muốn nói về điều gì?', kinds: { bug: '🐞 Có lỗi', idea: '💡 Ý tưởng', question: '❓ Câu hỏi', other: '💬 Khác' },
       msg: 'Nội dung', msgPh: 'Hãy cho chúng tôi biết đã xảy ra chuyện gì hoặc bạn muốn gì. Càng chi tiết càng tốt.',
       contact: 'Email hoặc tên của bạn (không bắt buộc, chỉ khi bạn muốn nhận phản hồi)', tech: 'Gửi kèm thông tin kỹ thuật (trang, cỡ màn hình, trình duyệt) để chúng tôi tìm lỗi',
@@ -647,7 +716,7 @@
 
   var HELP = {
     en: [
-      ['The goal', 'Get rid of all 13 of your cards first. At the end of a hand the placings pay: 1st +2 stakes, 2nd +1, 3rd −1, 4th −2. The stake is the table amount per hand ($1 to $50). All chips are play money with no cash value.'],
+      ['The goal', 'Get rid of all 13 of your cards first. At the end of a hand the placings pay: 1st +2 stakes, 2nd +1, 3rd −1, 4th −2. The stake is the table amount per hand (100 to 50,000 chips). Chips are game credits with no cash value.'],
       ['Card order', 'From low to high: 3 4 5 6 7 8 9 10 J Q K A 2. The 2 is the highest card. Suits from low to high: ♠ ♣ ♦ ♥ (hearts are highest). Red 2s (♦ ♥) are worth more than black 2s.'],
       ['Starting', 'In the first hand of a table, whoever holds the 3♠ must start and must include the 3♠ in the first play. In later hands the winner of the last hand starts.'],
       ['Your turn', 'Tap your cards to select them, then PLAY. When you lead, play any combination. When someone else led, play the same type and the same number of cards, but higher. If you cannot or do not want to, press PASS. When everybody else passes, you lead again. XẾP BÀI sorts your hand.'],
@@ -657,12 +726,12 @@
       ['Thối', 'The player who finishes last pays the winner for the 2s, four of a kinds and runs of pairs still in their hand. This is a house rule you can turn off.'],
       ['Instant win (tới trắng)', 'If your dealt hand has four 2s, six pairs, or a straight from 3 to A (the dragon), you win at once and every other player pays 4 stakes. Five pairs in a row and four 3s also count when those house rules are on.'],
       ['House rules', 'The ⚙ HOUSE RULES button lets you turn on or off: five pairs in a row as an instant win, four 3s as an instant win, thối, and refunding a chopped chop. Online, the host of the table chooses them for everybody.'],
-      ['Chips and the WSOP bonus', 'When your bankroll cannot cover the table stake, the refill window opens. The WSOP 4-hour bonus gives +$50 once every 4 hours (saved on your device). The short refill gives +$20. Online tables use their own play-money stack ($100 per seat) that is topped up automatically.'],
+      ['Chips and free bonuses', 'Everyone starts with 50,000 chips, the same chips on every page and every device. Claim a daily reward (it grows over a 7-day streak), a free spin once a day, and refills: +20,000 every 30 minutes when you have under 10,000, and +50,000 every 4 hours when you have under 50,000. Open them any time with FREE CHIPS. A table is safest when you hold about 50 times its stake. Chips are game credits with no cash value and cannot be cashed out.'],
       ['Playing online', 'Press CREATE A TABLE, then COPY INVITE LINK and send the link to friends. The host adds bots, chooses the stake, the bot level and the house rules, and presses START. A table has up to 4 players and empty seats can be bots. You have 20 seconds per move. If you leave during a hand, a bot finishes it for you; open the same link to get your seat back.'],
       ['Bots', 'Normal bots plan their whole hand and are a fair challenge. Hard bots also count the cards that were played and set traps for your 2s. Bots never look at your cards.']
     ],
     vi: [
-      ['Mục tiêu', 'Đánh hết 13 lá bài của mình trước. Cuối ván tính tiền theo thứ hạng: Nhất +2 cược, Nhì +1, Ba −1, Bét −2. Mức cược là số tiền mỗi ván của bàn ($1 đến $50). Mọi chip chỉ là tiền ảo, không có giá trị quy đổi.'],
+      ['Mục tiêu', 'Đánh hết 13 lá bài của mình trước. Cuối ván tính tiền theo thứ hạng: Nhất +2 cược, Nhì +1, Ba −1, Bét −2. Mức cược là số chip mỗi ván của bàn (100 đến 50.000 chip). Chip chỉ là điểm trong game, không có giá trị quy đổi ra tiền.'],
       ['Thứ tự bài', 'Từ nhỏ đến lớn: 3 4 5 6 7 8 9 10 J Q K A 2. Quân 2 (heo) lớn nhất. Chất từ thấp đến cao: ♠ ♣ ♦ ♥ (cơ cao nhất). Heo đỏ (♦ ♥) có giá trị hơn heo đen.'],
       ['Đi đầu', 'Ván đầu tiên của bàn, ai cầm 3♠ phải đánh trước và nước đầu phải có 3♠. Các ván sau, người thắng ván trước đánh trước.'],
       ['Lượt của bạn', 'Chạm vào bài để chọn rồi bấm PLAY. Khi bạn đi đầu vòng, đánh tổ hợp tùy ý. Khi người khác đã đánh, bạn phải đánh cùng loại, cùng số lá nhưng lớn hơn. Nếu không đánh được hoặc không muốn, bấm PASS (bỏ lượt). Khi mọi người đều bỏ lượt, bạn đánh tiếp. XẾP BÀI để sắp xếp bài.'],
@@ -672,9 +741,30 @@
       ['Thối', 'Người về bét trả cho người thắng tiền thối heo, tứ quý và đôi thông còn trên tay. Đây là luật nhà, có thể tắt.'],
       ['Tới trắng', 'Nếu bài chia có tứ quý heo, sáu đôi hoặc sảnh rồng (từ 3 đến A), bạn thắng ngay và mỗi người khác trả 4 cược. Năm đôi thông và tứ quý 3 cũng tính khi luật nhà này được bật.'],
       ['Luật nhà', 'Nút ⚙ HOUSE RULES cho phép bật hoặc tắt: năm đôi thông tới trắng, tứ quý 3 tới trắng, thối, và hoàn tiền chặt chồng. Khi chơi online, chủ bàn chọn luật cho cả bàn.'],
-      ['Chip và thưởng WSOP', 'Khi tiền của bạn không đủ mức cược, cửa sổ nạp thêm sẽ hiện ra. Thưởng WSOP 4 giờ cho +$50 mỗi 4 giờ (lưu trên thiết bị của bạn). Nạp nhanh cho +$20. Bàn online dùng chip riêng ($100 mỗi chỗ) và tự nạp thêm.'],
+      ['Chip và quà tặng', 'Mọi người bắt đầu với 50.000 chip, cùng một số chip trên mọi trang và mọi thiết bị. Bạn nhận quà đăng nhập mỗi ngày (tăng dần trong chuỗi 7 ngày), một lượt quay miễn phí mỗi ngày, và nạp thêm: +20.000 mỗi 30 phút khi bạn có dưới 10.000, và +50.000 mỗi 4 giờ khi bạn có dưới 50.000. Mở bất cứ lúc nào bằng nút FREE CHIPS. Bàn an toàn nhất khi bạn có khoảng 50 lần mức cược. Chip chỉ là điểm trong game, không có giá trị quy đổi ra tiền.'],
       ['Chơi online', 'Bấm CREATE A TABLE, rồi COPY INVITE LINK và gửi liên kết cho bạn bè. Chủ bàn thêm bot, chọn mức cược, độ khó của bot và luật nhà, rồi bấm START. Mỗi bàn tối đa 4 người, chỗ trống có thể là bot. Mỗi nước đi có 20 giây. Nếu bạn rời ván, bot sẽ đánh nốt; mở lại cùng liên kết để lấy lại chỗ.'],
       ['Bot', 'Bot Normal tính toán cả ván bài và là đối thủ vừa sức. Bot Hard còn đếm bài đã ra và đặt bẫy heo của bạn. Bot không bao giờ nhìn bài của bạn.']
+    ]
+  };
+
+  var TERMS = {
+    en: [
+      ['Play money only', 'CyberNova is a free card game for entertainment. Chips are game credits with no cash value. They cannot be exchanged for money, prizes or anything of value, and there is no way to cash out. Playing here gives no chance to win real money or prizes.'],
+      ['Who can play', 'CyberNova is for adults aged 18 and over. If you are under 18, please do not play.'],
+      ['Your account', 'You sign in with Google or with an email and password. Passwords are handled by Google Firebase Authentication and we never see them. We keep your name, email address, the picture you choose, your chip balance and your game results so your account works on every device. Other players at your table can see your name and picture.'],
+      ['Other data', 'Messages you send through Send feedback are stored so we can read them. When the game crashes it can send us a short error report without personal details. If video rewards are switched on, the advertising provider may use cookies or device identifiers under its own privacy policy. We do not sell your personal data.'],
+      ['Fair play', 'Please play fair: no cheating, no bots or automation, no abusing bugs. We may correct chip balances, or suspend accounts, that break these rules.'],
+      ['The service', 'The game is provided as is and may change, be interrupted or be stopped at any time. Chips and accounts are not property and have no value.'],
+      ['Your data', 'To see, correct or delete the data we hold about you, send us a message in Send feedback and include the email of your account.']
+    ],
+    vi: [
+      ['Chỉ là tiền ảo', 'CyberNova là game bài miễn phí để giải trí. Chip chỉ là điểm trong game, không có giá trị quy đổi ra tiền. Chip không thể đổi lấy tiền, giải thưởng hay bất cứ thứ gì có giá trị, và không có cách rút chip. Chơi ở đây không có cơ hội thắng tiền thật hay giải thưởng.'],
+      ['Ai được chơi', 'CyberNova dành cho người từ 18 tuổi trở lên. Nếu bạn dưới 18 tuổi, vui lòng không chơi.'],
+      ['Tài khoản của bạn', 'Bạn đăng nhập bằng Google hoặc bằng email và mật khẩu. Mật khẩu do Google Firebase Authentication xử lý và chúng tôi không bao giờ thấy. Chúng tôi lưu tên, email, ảnh bạn chọn, số chip và kết quả ván chơi để tài khoản dùng được trên mọi thiết bị. Người chơi cùng bàn thấy được tên và ảnh của bạn.'],
+      ['Dữ liệu khác', 'Tin nhắn bạn gửi qua Gửi góp ý được lưu lại để chúng tôi đọc. Khi game bị lỗi, game có thể gửi cho chúng tôi một báo cáo ngắn không kèm thông tin cá nhân. Nếu bật tính năng xem video nhận thưởng, nhà cung cấp quảng cáo có thể dùng cookie hoặc mã thiết bị theo chính sách riêng tư của họ. Chúng tôi không bán dữ liệu cá nhân của bạn.'],
+      ['Chơi công bằng', 'Vui lòng chơi công bằng: không gian lận, không dùng bot hay tự động hóa, không lợi dụng lỗi. Chúng tôi có thể điều chỉnh số chip hoặc khóa tài khoản vi phạm.'],
+      ['Dịch vụ', 'Game được cung cấp nguyên trạng và có thể thay đổi, gián đoạn hoặc dừng bất cứ lúc nào. Chip và tài khoản không phải tài sản và không có giá trị.'],
+      ['Dữ liệu của bạn', 'Để xem, sửa hoặc xóa dữ liệu chúng tôi lưu về bạn, hãy gửi tin trong mục Gửi góp ý kèm email của tài khoản.']
     ]
   };
 
@@ -691,7 +781,7 @@
     '#cnfb-head h2{flex:1;margin:0;font-size:15px;font-weight:900;color:#ffd700;letter-spacing:1px}' +
     '.cnfb-btn{background:#1e2638;border:1px solid #4a5a78;color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;min-height:36px}' +
     '.cnfb-btn.on{border-color:#ffd700;color:#ffd700}.cnfb-btn.gold{background:linear-gradient(135deg,#ffd700,#d4af37);color:#000;border-color:#d4af37}.cnfb-btn:disabled{opacity:.5;cursor:not-allowed}' +
-    '#cnfb-tabs{display:flex;gap:6px;padding:10px 14px 0}' +
+    '#cnfb-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 0}' +
     '#cnfb-body{padding:12px 14px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}' +
     '#cnfb-body details{background:#0d121d;border:1px solid #232f48;border-radius:10px;margin-bottom:8px}' +
     '#cnfb-body summary{cursor:pointer;padding:11px 12px;font-weight:800;font-size:13px;color:#ffd700;list-style:none}' +
@@ -707,7 +797,7 @@
   var st = document.createElement('style'); st.id = 'cnfb-css'; st.textContent = css; document.head.appendChild(st);
 
   // ------------------------------------------------------------------ window
-  var overlay, body, tabHelp, tabFb, titleEl, closeBtn, btnEn, btnVi, tab = 'help', sentOnce = false;
+  var overlay, body, tabHelp, tabFb, tabTerms, titleEl, closeBtn, btnEn, btnVi, tab = 'help', sentOnce = false;
   function el(tag, attrs, text) { var e = document.createElement(tag); if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; }
 
   function build() {
@@ -723,7 +813,8 @@
     var tabs = el('div', { id: 'cnfb-tabs' });
     tabHelp = el('button', { type: 'button', 'class': 'cnfb-btn' }); tabFb = el('button', { type: 'button', 'class': 'cnfb-btn' });
     tabHelp.onclick = function () { show('help'); }; tabFb.onclick = function () { show('feedback'); };
-    tabs.appendChild(tabHelp); tabs.appendChild(tabFb);
+    tabTerms = el('button', { type: 'button', 'class': 'cnfb-btn' }); tabTerms.onclick = function () { show('terms'); };
+    tabs.appendChild(tabHelp); tabs.appendChild(tabFb); tabs.appendChild(tabTerms);
     body = el('div', { id: 'cnfb-body' });
     box.appendChild(head); box.appendChild(tabs); box.appendChild(body); overlay.appendChild(box);
     overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) closeHelp(); });
@@ -735,13 +826,15 @@
 
   function render() {
     var t = T[lang];
-    titleEl.textContent = t.title; tabHelp.textContent = t.tabHelp; tabFb.textContent = t.tabFb;
-    tabHelp.className = 'cnfb-btn' + (tab === 'help' ? ' on' : ''); tabFb.className = 'cnfb-btn' + (tab === 'feedback' ? ' on' : '');
+    titleEl.textContent = t.title; tabHelp.textContent = t.tabHelp; tabFb.textContent = t.tabFb; tabTerms.textContent = t.tabTerms;
+    tabHelp.className = 'cnfb-btn' + (tab === 'help' ? ' on' : ''); tabFb.className = 'cnfb-btn' + (tab === 'feedback' ? ' on' : ''); tabTerms.className = 'cnfb-btn' + (tab === 'terms' ? ' on' : '');
     btnEn.className = 'cnfb-btn' + (lang === 'en' ? ' on' : ''); btnVi.className = 'cnfb-btn' + (lang === 'vi' ? ' on' : '');
     body.textContent = '';
     if (tab === 'help') {
       HELP[lang].forEach(function (s, i) { var d = el('details'); if (i === 0) d.setAttribute('open', ''); d.appendChild(el('summary', null, s[0])); d.appendChild(el('p', null, s[1])); body.appendChild(d); });
       var b = el('button', { type: 'button', 'class': 'cnfb-btn gold', style: 'width:100%;margin-top:6px;min-height:42px' }, t.tabFb + ' →'); b.onclick = function () { show('feedback'); }; body.appendChild(b);
+    } else if (tab === 'terms') {
+      TERMS[lang].forEach(function (s, i) { var d = el('details'); if (i === 0) d.setAttribute('open', ''); d.appendChild(el('summary', null, s[0])); d.appendChild(el('p', null, s[1])); body.appendChild(d); });
     } else renderForm(t);
   }
 
@@ -796,7 +889,7 @@
   }
 
   function show(which) { tab = which; render(); if (which === 'feedback') { var ta = document.getElementById('cnfb-text'); if (ta) setTimeout(function () { try { ta.focus(); } catch (e) {} }, 50); } }
-  function openHelp(which) { build(); tab = which === 'feedback' ? 'feedback' : 'help'; render(); overlay.classList.add('open'); }
+  function openHelp(which) { build(); tab = which === 'feedback' ? 'feedback' : (which === 'terms' ? 'terms' : 'help'); render(); overlay.classList.add('open'); }
   function closeHelp() { if (overlay) overlay.classList.remove('open'); }
   window.openHelp = openHelp; window.openFeedback = function () { openHelp('feedback'); }; window.closeHelp = closeHelp;
 
@@ -831,13 +924,13 @@
       </div>
 
       <div class="header-actions">
-        <div class="stat-badge" id="hdr-stake-badge" style="color:#ffd700; border-color:#ffd700;">TABLE: $5</div>
+        <div class="stat-badge" id="hdr-stake-badge" style="color:#ffd700; border-color:#ffd700;">TABLE: 500</div>
         <select class="stake-select" id="ai-difficulty" onchange="changeDifficulty(this.value)">
           <option value="easy">🌱 Easy AI (for beginners)</option>
           <option value="normal">⚡ Normal AI</option>
           <option value="hard">🧠 Hard AI (Card Counting & Traps)</option>
         </select>
-        <div class="stat-badge" id="player-cash">$20</div>
+        <div class="stat-badge" id="player-cash">0</div>
         <button class="btn-hdr hdr-menu-toggle" id="btn-menu" aria-label="Menu" onclick="toggleHdrMenu(event)">☰</button>
         <div class="hdr-menu" id="hdr-menu">
           <button class="btn-hdr active-toggle" id="btn-sfx" onclick="toggleSFX()">🔊 SFX: ON</button>
@@ -845,7 +938,9 @@
           <button class="btn-hdr" id="btn-rules" onclick="openRules()">⚙ HOUSE RULES</button>
           <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
           <button class="btn-hdr" onclick="openProfileMenu()">👤 PROFILE</button>
+          <button class="btn-hdr" onclick="openFreeChipsMenu()">🎁 FREE CHIPS</button>
           <button class="btn-hdr" onclick="openHelp()">💬 HELP</button>
+          <button class="btn-hdr" onclick="openHelp('terms')">📄 TERMS</button>
           <button class="btn-hdr" onclick="logoutUser()">LOGOUT</button>
         </div>
       </div>
@@ -870,7 +965,7 @@
           </div>
           <div class="avatar-info">
             <span class="avatar-name" id="name-1">My Duyen</span>
-            <span class="avatar-cash" id="cash-1">$50</span>
+            <span class="avatar-cash" id="cash-1">50K</span>
             <span class="avatar-count" id="count-1">13 Cards</span>
           </div>
         </div>
@@ -888,7 +983,7 @@
           </div>
           <div class="avatar-info">
             <span class="avatar-name" id="name-2">Truc Quynh</span>
-            <span class="avatar-cash" id="cash-2">$50</span>
+            <span class="avatar-cash" id="cash-2">50K</span>
             <span class="avatar-count" id="count-2">13 Cards</span>
           </div>
         </div>
@@ -906,7 +1001,7 @@
           </div>
           <div class="avatar-info">
             <span class="avatar-name" id="name-3">Bao Ngoc</span>
-            <span class="avatar-cash" id="cash-3">$50</span>
+            <span class="avatar-cash" id="cash-3">50K</span>
             <span class="avatar-count" id="count-3">13 Cards</span>
           </div>
         </div>
@@ -934,7 +1029,7 @@
           </div>
           <div class="avatar-info">
             <span class="avatar-name" id="name-0">Player</span>
-            <span class="avatar-cash" id="cash-0">$20</span>
+            <span class="avatar-cash" id="cash-0">20K</span>
             <span class="avatar-count" id="count-0">13 Cards</span>
           </div>
         </div>
@@ -958,13 +1053,13 @@
     </div>
   </div>
 
-  <!-- WSOP REFILL MODAL -->
+  <!-- REFILL MODAL -->
   <div id="refillModal">
     <div class="refill-box">
       <div class="refill-title">OUT OF CHIPS!</div>
       <div class="refill-desc">You don't have enough chips to join this hand. Refill your bankroll to keep playing!</div>
-      <button class="btn-refill btn-ad" id="btnQuickRefill" onclick="watchVideoAdRefill()">🎁 Free Refill (+$20)</button>
-      <button class="btn-refill btn-timer" id="btnTimerClaim" onclick="claimTimerRefill()">⏳ 4-Hour Bonus (+$50)</button>
+      <button class="btn-refill btn-ad" id="btnQuickRefill" onclick="watchVideoAdRefill()">🎁 Free Refill (+20,000)</button>
+      <button class="btn-refill btn-timer" id="btnTimerClaim" onclick="claimTimerRefill()">⏳ 4-Hour Bonus (+50,000)</button>
     </div>
   </div>
 
@@ -983,7 +1078,9 @@
   <script>
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
-    let currentStake = parseFloat(localStorage.getItem('cybernova_selected_stake')) || 5;
+    const STAKE_LIST = [100, 500, 2000, 10000, 50000];
+    const pickStake = (v) => (STAKE_LIST.includes(Number(v)) ? Number(v) : 500);     // an old saved value from the dollar days falls back to the Standard table
+    let currentStake = pickStake(localStorage.getItem('cybernova_selected_stake'));
     let currentDifficulty = 'normal';
 
     // ---- house rules (each table in Vietnam plays a little differently): saved on this device, applied from the next hand ----
@@ -1130,10 +1227,10 @@
     const RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 
     let players = [
-      { id: 0, name: 'Player', cash: 20, hand: [], isBot: false, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 },
-      { id: 1, name: 'My Duyen', cash: 50, hand: [], isBot: true, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 },
-      { id: 2, name: 'Truc Quynh', cash: 50, hand: [], isBot: true, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 },
-      { id: 3, name: 'Bao Ngoc', cash: 50, hand: [], isBot: true, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 }
+      { id: 0, name: 'Player', cash: 20000, hand: [], isBot: false, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 },
+      { id: 1, name: 'My Duyen', cash: 50000, hand: [], isBot: true, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 },
+      { id: 2, name: 'Truc Quynh', cash: 50000, hand: [], isBot: true, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 },
+      { id: 3, name: 'Bao Ngoc', cash: 50000, hand: [], isBot: true, rank: 0, passed: false, cardsPlayedCount: 0, isCongLocked: false, congFinePaid: 0, netPayout: 0 }
     ];
 
     let selectedIndices = [];
@@ -1273,12 +1370,12 @@
       const rawUser = localStorage.getItem('cyberNova_currentUser');
       let username = localStorage.getItem('cybernova_user_name') || 'RomeoOG';
       let balance = parseFloat(localStorage.getItem('cybernova_user_chips'));
-      if (!isFinite(balance)) balance = 50.00;
+      if (!isFinite(balance)) balance = 50000;
       
       const savedStake = parseFloat(localStorage.getItem('cybernova_selected_stake'));
-      if (savedStake) currentStake = savedStake;
+      if (savedStake) currentStake = pickStake(savedStake);
 
-      document.getElementById('hdr-stake-badge').innerText = `TABLE: $${currentStake}`;
+      document.getElementById('hdr-stake-badge').innerText = `TABLE: ${CN.fmt(currentStake, true)}`;
 
       if (rawUser) {
         try {
@@ -1304,13 +1401,13 @@
       document.getElementById('hdr-user-name').innerText = username;
       document.getElementById('name-0').innerText = username;
       const cashHeader = document.getElementById('player-cash');
-      if (cashHeader) cashHeader.innerText = '$' + players[0].cash.toFixed(0);
+      if (cashHeader) cashHeader.innerText = CN.fmt(players[0].cash);
       const cashSeat = document.getElementById('cash-0');
-      if (cashSeat) cashSeat.innerText = '$' + players[0].cash.toFixed(0);
+      if (cashSeat) cashSeat.innerText = CN.fmt(players[0].cash);
     }
 
     function saveUserSession() {
-      localStorage.setItem('cybernova_user_chips', players[0].cash.toFixed(2));
+      localStorage.setItem('cybernova_user_chips', String(Math.round(players[0].cash)));
       localStorage.setItem('cybernova_user_name', players[0].name);
 
       const rawUser = localStorage.getItem('cyberNova_currentUser');
@@ -1335,7 +1432,7 @@
       try {
         localStorage.setItem('cyberNova_currentUser', JSON.stringify({ username: a.name, balance: a.balance, isGuest: false, difficulty: currentDifficulty, avatar: a.avatar || '', account: true }));
         localStorage.setItem('cybernova_user_name', a.name);
-        localStorage.setItem('cybernova_user_chips', Number(a.balance).toFixed(2));
+        localStorage.setItem('cybernova_user_chips', String(Math.round(Number(a.balance))));
       } catch (e) {}
     }
     function paintProfile(a) {
@@ -1348,9 +1445,14 @@
 
     function checkBrokeState() {
       if (players[0].cash < currentStake) {
+        if (ACCOUNT_MODE) { openFreeChipsMenu(true); return; }
         document.getElementById('refillModal').style.display = 'flex';
         updateTimerButton();
       }
+    }
+    function openFreeChipsMenu(broke) {
+      if (!ACCOUNT_MODE) { document.getElementById('refillModal').style.display = 'flex'; updateTimerButton(); return; }
+      CN.openRefill((a) => { if (a) { applyAccount(a); players[0].cash = a.balance; updateUI(); } }, { broke: !!broke });
     }
 
     async function accountBonus(kind) {
@@ -1359,7 +1461,7 @@
       if (r && r.ok) {
         applyAccount(r.account); players[0].cash = r.account.balance; updateUI();
         document.getElementById('refillModal').style.display = 'none';
-        say(kind === '4h' ? 'BONUS CLAIMED! +$50 ADDED' : 'FREE REFILL CLAIMED! +$20 ADDED');
+        say(kind === '4h' ? 'BONUS CLAIMED! +50,000 ADDED' : 'FREE REFILL CLAIMED! +20,000 ADDED');
       } else { say(((r && r.error) || 'NOT AVAILABLE RIGHT NOW').toUpperCase()); updateTimerButton(); }
     }
 
@@ -1367,11 +1469,11 @@
       if (ACCOUNT_MODE) { accountBonus('quick'); return; }
       say('GUEST REFILL IN 3 SECONDS...');
       setTimeout(() => {
-        players[0].cash += 20.00;
+        players[0].cash += 20000;
         saveUserSession();
         updateUI();
         document.getElementById('refillModal').style.display = 'none';
-        say('REFILL CLAIMED! +$20 ADDED');
+        say('REFILL CLAIMED! +20,000 ADDED');
       }, 3000);
     }
 
@@ -1382,34 +1484,34 @@
         const lab = (k, text, under) => {
           const i = b[k] || {};
           if (i.readyAt && i.readyAt > now) { const m = Math.ceil((i.readyAt - now) / 60000); return [true, text + ' · ready in ' + (m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m + 'm')]; }
-          if (i.eligible === false) return [true, text + ' · when under $' + under];
+          if (i.eligible === false) return [true, text + ' · when under ' + under.toLocaleString('en-US')];
           return [false, text];
         };
-        const t = lab('4h', '⏳ 4-Hour Bonus (+$50)', 50), f = lab('quick', '🎁 Free Refill (+$20)', 10);
+        const t = lab('4h', '⏳ 4-Hour Bonus (+50,000)', 50000), f = lab('quick', '🎁 Free Refill (+20,000)', 10000);
         btn.disabled = t[0]; btn.innerText = t[1];
         if (q) { q.disabled = f[0]; q.innerText = f[1]; }
         return;
       }
       const fourHoursMs = 4 * 60 * 60 * 1000, timePassed = Date.now() - lastBonusTime;
-      if (timePassed >= fourHoursMs) { btn.disabled = false; btn.innerText = "⏳ 4-Hour Bonus (+$50 READY!)"; }
+      if (timePassed >= fourHoursMs) { btn.disabled = false; btn.innerText = "⏳ 4-Hour Bonus (+50,000 READY!)"; }
       else { btn.disabled = true; btn.innerText = `⏳ Bonus ready in ${Math.ceil((fourHoursMs - timePassed) / 60000)}m`; }
     }
 
     function claimTimerRefill() {                         // the 4-hour bonus
       if (ACCOUNT_MODE) { accountBonus('4h'); return; }
       lastBonusTime = Date.now();
-      players[0].cash += 50.00;
+      players[0].cash += 50000;
       saveUserSession();
       updateUI();
       document.getElementById('refillModal').style.display = 'none';
-      say('BONUS CLAIMED! +$50 ADDED');
+      say('BONUS CLAIMED! +50,000 ADDED');
     }
 
     // after every hand the result is added to the account; the account answers with the real balance
     async function accountAfterHand() {
       if (!ACCOUNT_MODE || settledThisHand) return;
       settledThisHand = true;
-      const a = await CN.settle(Math.round(players[0].netPayout * 100) / 100, currentStake);
+      const a = await CN.settle(Math.round(players[0].netPayout), currentStake);
       if (a) { applyAccount(a); if (Math.abs(players[0].cash - a.balance) > 0.001) { players[0].cash = a.balance; updateUI(); } }
     }
 
@@ -1454,7 +1556,7 @@
           const newName = pool[i - 1];
           const initials = newName.split(' ').map(n => n[0]).join('');
           players[i].name = newName;
-          players[i].cash = Math.floor(Math.random() * 50) + 30;
+          players[i].cash = (Math.floor(Math.random() * 50) + 30) * 1000;
           const nameEl = document.getElementById(`name-${i}`);
           const imgEl = document.getElementById(`img-${i}`);
           if (nameEl) nameEl.innerText = newName;
@@ -1635,14 +1737,14 @@
 
     function updateUI() {
       const cashHeader = document.getElementById('player-cash');
-      if (cashHeader) cashHeader.innerText = '$' + players[0].cash.toFixed(0);
+      if (cashHeader) cashHeader.innerText = CN.fmt(players[0].cash);
 
       players.forEach((p, idx) => {
         const cashEl = document.getElementById(`cash-${idx}`);
         const countEl = document.getElementById(`count-${idx}`);
         const av = document.getElementById(`avatar-${idx}`);
 
-        if (cashEl) cashEl.innerText = '$' + p.cash.toFixed(0);
+        if (cashEl) cashEl.innerText = CN.fmt(p.cash);
         if (countEl) countEl.innerText = p.isCongLocked ? 'BỊ CÓNG' : (p.rank > 0 ? `#${p.rank} PLACE` : p.hand.length + ' Cards');
         
         if (av) {
@@ -1869,7 +1971,7 @@
         players[playerIdx].netPayout += bounty;
         players[lastCombo.owner].cash -= bounty;
         players[lastCombo.owner].netPayout -= bounty;
-        triggerComboBanner(`💥 CHOP! (${players[playerIdx].name.toUpperCase()}) +$${bounty} 💥`);
+        triggerComboBanner(`💥 CHOP! (${players[playerIdx].name.toUpperCase()}) +${CN.fmt(bounty)} 💥`);
       } else if (!combo.isTwo && !combo.isPairTwos) {
         playSound('card');
       }
@@ -2346,8 +2448,8 @@
         row.className = `result-row ${isWin ? 'winner' : ''} ${p.isCongLocked ? 'cong' : ''}`;
         
         let rankStr = p.isCongLocked ? 'BỊ CÓNG' : `#${p.rank} HẠNG ${p.rank === 1 ? 'NHẤT' : (p.rank === 2 ? 'NHÌ' : (p.rank === 3 ? 'BA' : 'BẾT'))}`;
-        let detailsStr = p.isCongLocked ? `Phạt Cóng + Thối: -$${p.congFinePaid.toFixed(0)}` : (p.hand.length > 0 ? `Remaining: ${p.hand.length} cards` : 'Cleared Hand!');
-        if (p.thoiPaid) detailsStr = `Phạt Thối (2s / bombs left): -$${p.thoiPaid.toFixed(0)}`;
+        let detailsStr = p.isCongLocked ? `Phạt Cóng + Thối: -${CN.fmt(p.congFinePaid)}` : (p.hand.length > 0 ? `Remaining: ${p.hand.length} cards` : 'Cleared Hand!');
+        if (p.thoiPaid) detailsStr = `Phạt Thối (2s / bombs left): -${CN.fmt(p.thoiPaid)}`;
 
         row.innerHTML = `
           <div class="result-player-info">
@@ -2358,7 +2460,7 @@
             </div>
           </div>
           <div class="result-payout ${p.netPayout >= 0 ? 'pos' : 'neg'}">
-            ${p.netPayout >= 0 ? '+' : ''}$${p.netPayout.toFixed(0)}
+            ${p.netPayout >= 0 ? '+' : ''}${CN.fmt(p.netPayout)}
           </div>
         `;
         container.appendChild(row);
