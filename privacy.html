@@ -6,6 +6,299 @@
   <title>CyberNova Tiến Lên: Privacy Policy and Terms</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0b0e17">
+  <script>
+/* CyberNova language switch (Vietnamese / English).
+   The game opens in Vietnamese. The choice (EN or VI) is remembered on the device.
+   How it works: every piece of text the page shows is looked up in a dictionary (PAIRS) or matched against patterns (PATTERNS) and replaced,
+   including text the game writes while it runs. Text that is not in the lists is left as it is, so nothing can break.
+   To add or fix a translation, add a line to PAIRS: [english, vietnamese]. Both directions work. */
+(function () {
+  var KEY = 'cybernova_lang', DEFAULT = 'vi';
+  var lang = DEFAULT;
+  try { var saved = localStorage.getItem(KEY) || localStorage.getItem('cybernova_help_lang'); if (saved === 'en' || saved === 'vi') lang = saved; } catch (e) {}
+
+  // ---------------------------------------------------------------- exact texts: [english, vietnamese]
+  var PAIRS = [
+    // sign-in page
+    ['SIGN IN', 'ĐĂNG NHẬP'], ['CREATE ACCOUNT', 'TẠO TÀI KHOẢN'], ['GUEST', 'KHÁCH'], ['SIGN IN & PLAY', 'ĐĂNG NHẬP & CHƠI'],
+    ['Sign in with Google', 'Đăng nhập bằng Google'], ['Continue with Google', 'Tiếp tục với Google'], ['OR CONTINUE WITH', 'HOẶC TIẾP TỤC VỚI'],
+    ['Email address', 'Địa chỉ email'], ['Password', 'Mật khẩu'], ['Display name', 'Tên hiển thị'], ['Display name (up to 16 characters)', 'Tên hiển thị (tối đa 16 ký tự)'],
+    ['FORGOT PASSWORD?', 'QUÊN MẬT KHẨU?'], ['Choose a display name...', 'Chọn tên hiển thị...'], ['Create password (at least 6 characters)', 'Tạo mật khẩu (ít nhất 6 ký tự)'],
+    ['you@example.com', 'ban@example.com'], ['CREATE ACCOUNT & GET 50,000 CHIPS', 'TẠO TÀI KHOẢN & NHẬN 50,000 CHIP'],
+    ['PLAY AS GUEST (20,000 CHIPS)', 'CHƠI NHƯ KHÁCH (20,000 CHIP)'], ['LOGGED IN AS', 'ĐĂNG NHẬP VỚI TÊN'], ['CHIPS', 'CHIP'],
+    ['Try the game against bots with', 'Chơi thử với máy bằng'], ['20,000 temporary chips', '20,000 chip tạm thời'],
+    ['. Guest play is not saved and cannot join online tables.', '. Chơi khách không được lưu và không vào được bàn online.'],
+    ['Create an account', 'Tạo tài khoản'], ['to keep your chips.', 'để giữ chip của bạn.'],
+    ['Guest chips are temporary and are not saved.', 'Chip của khách chỉ là tạm thời và không được lưu.'],
+    ['Same account and same money everywhere.', 'Một tài khoản, cùng số chip ở mọi nơi.'],
+    ['Loading your account...', 'Đang tải tài khoản của bạn...'], ['Loading your account…', 'Đang tải tài khoản của bạn…'], ['LOADING YOUR ACCOUNT...', 'ĐANG TẢI TÀI KHOẢN...'],
+    ['Creating your account...', 'Đang tạo tài khoản...'], ['Signing in...', 'Đang đăng nhập...'], ['Opening Google sign-in...', 'Đang mở đăng nhập Google...'], ['Loading...', 'Đang tải...'],
+    ['Type the email address of your account. We will email you a link to choose a new password.', 'Nhập email của tài khoản. Chúng tôi sẽ gửi cho bạn một liên kết để chọn mật khẩu mới.'],
+    ['🔒 RESET PASSWORD', '🔒 ĐẶT LẠI MẬT KHẨU'], ['SEND RESET EMAIL', 'GỬI EMAIL ĐẶT LẠI'], ['CANCEL', 'HỦY'], ['CLOSE', 'ĐÓNG'], ['Close', 'Đóng'],
+    ['If that email has an account, a reset link is on its way. Check your inbox (and spam).', 'Nếu email đó có tài khoản, một liên kết đặt lại đang được gửi. Hãy kiểm tra hộp thư (và thư rác).'],
+    ['Terms & Privacy · 18+ · play money only, no cash value', 'Điều khoản & Riêng tư · 18+ · chỉ là chip ảo, không có giá trị tiền'],
+    ['❓ How to play · Help & feedback', '❓ Cách chơi · Trợ giúp & góp ý'], ['❓ HOW TO PLAY · HELP', '❓ CÁCH CHƠI · TRỢ GIÚP'],
+    ['That email address does not look right.', 'Địa chỉ email này có vẻ chưa đúng.'], ['Please enter your email and password.', 'Vui lòng nhập email và mật khẩu.'],
+    ['Please use a password with at least 6 characters.', 'Vui lòng dùng mật khẩu có ít nhất 6 ký tự.'], ['Please choose a display name.', 'Vui lòng chọn tên hiển thị.'], ['Please type a display name.', 'Vui lòng nhập tên hiển thị.'],
+    ['Please type your password.', 'Vui lòng nhập mật khẩu của bạn.'], ['Please sign in again.', 'Vui lòng đăng nhập lại.'], ['Please sign in first.', 'Vui lòng đăng nhập trước.'],
+    ['Wrong email or password. If you play with Google, use Continue with Google. New here? Use Create account.', 'Sai email hoặc mật khẩu. Nếu bạn chơi bằng Google, hãy chọn Tiếp tục với Google. Mới dùng? Hãy chọn Tạo tài khoản.'],
+    ['Wrong email or password. If you play with Google, use Continue with Google.', 'Sai email hoặc mật khẩu. Nếu bạn chơi bằng Google, hãy chọn Tiếp tục với Google.'],
+    ['That email already has an account. Sign in, or use "Forgot password".', 'Email này đã có tài khoản. Hãy đăng nhập, hoặc dùng "Quên mật khẩu".'],
+    ['Too many tries. Please wait a few minutes and try again.', 'Thử quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.'],
+    ['No connection. Please check your internet and try again.', 'Không có kết nối. Vui lòng kiểm tra mạng và thử lại.'],
+    ['Google sign-in was cancelled. Tap Continue with Google to try again.', 'Đã hủy đăng nhập Google. Hãy bấm Tiếp tục với Google để thử lại.'],
+    ['Your browser blocked the Google window. Allow pop-ups for this page and try again.', 'Trình duyệt đã chặn cửa sổ Google. Hãy cho phép cửa sổ bật lên cho trang này rồi thử lại.'],
+    ['This website address is not allowed yet. (The owner must add it in Firebase.)', 'Địa chỉ trang web này chưa được cho phép. (Chủ game cần thêm vào Firebase.)'],
+    ['This sign-in method is not switched on yet. (The owner must turn it on in Firebase.)', 'Cách đăng nhập này chưa được bật. (Chủ game cần bật trong Firebase.)'],
+    ['For your safety, please sign out, sign in again, and then retry.', 'Để an toàn, vui lòng đăng xuất, đăng nhập lại rồi thử lại.'], ['This account has been disabled.', 'Tài khoản này đã bị vô hiệu hóa.'],
+    ['Please confirm the new address from the email we sent.', 'Vui lòng xác nhận địa chỉ mới qua email chúng tôi đã gửi.'],
+    ['Could not load your account. Please check your connection and sign in again.', 'Không tải được tài khoản. Vui lòng kiểm tra kết nối và đăng nhập lại.'],
+    ['Could not load your account. Please try again.', 'Không tải được tài khoản. Vui lòng thử lại.'],
+    ['Signed in, but your account could not be loaded. Please check your connection and try again.', 'Đã đăng nhập nhưng không tải được tài khoản. Vui lòng kiểm tra kết nối và thử lại.'],
+    ['Could not reach the server.', 'Không kết nối được máy chủ.'], ['Could not reach the server. Please try again.', 'Không kết nối được máy chủ. Vui lòng thử lại.'],
+    ['Could not reach the game server. Please try again in a moment.', 'Không kết nối được máy chủ game. Vui lòng thử lại sau giây lát.'],
+    ['Something went wrong.', 'Đã có lỗi xảy ra.'], ['Could not save. Please try again.', 'Không lưu được. Vui lòng thử lại.'], ['Saved.', 'Đã lưu.'], ['NOT AVAILABLE RIGHT NOW', 'HIỆN CHƯA DÙNG ĐƯỢC'],
+    ['Online tables need an account, so your chips are saved. Sign in or create one (it is free).', 'Bàn online cần tài khoản để lưu chip của bạn. Hãy đăng nhập hoặc tạo tài khoản (miễn phí).'],
+    ['SIGN IN WITH AN ACCOUNT TO HAVE A PROFILE', 'ĐĂNG NHẬP BẰNG TÀI KHOẢN ĐỂ CÓ HỒ SƠ'],
+    // lobby
+    ['Select Table Stake', 'Chọn mức cược của bàn'], ['🌱 Rookie Table', '🌱 Bàn Tân Thủ'], ['⚡ Standard Club', '⚡ Câu Lạc Bộ Tiêu Chuẩn'], ['🔥 Pro Master', '🔥 Cao Thủ'], ['💎 High Roller', '💎 Đại Gia'], ['👑 VIP Suite', '👑 Phòng VIP'],
+    ['ENTER GAME TABLE (vs bots)', 'VÀO BÀN (CHƠI VỚI MÁY)'], ['ENTER GAME TABLE (VS BOTS)', 'VÀO BÀN (CHƠI VỚI MÁY)'], ['🌐 PLAY ONLINE WITH PEOPLE', '🌐 CHƠI ONLINE VỚI NGƯỜI KHÁC'], ['🌐 SIGN IN TO PLAY ONLINE', '🌐 ĐĂNG NHẬP ĐỂ CHƠI ONLINE'],
+    ['👤 PROFILE', '👤 HỒ SƠ'], ['PROFILE', 'HỒ SƠ'], ['SIGN OUT', 'ĐĂNG XUẤT'], ['LOGOUT', 'ĐĂNG XUẤT'], ['🎁 FREE CHIPS', '🎁 CHIP MIỄN PHÍ'], ['🎁 FREE CHIPS 🔴', '🎁 CHIP MIỄN PHÍ 🔴'],
+    ['📣 INVITE FRIENDS', '📣 MỜI BẠN BÈ'], ['📋 MISSIONS', '📋 NHIỆM VỤ'], ['📋 MISSIONS 🔴', '📋 NHIỆM VỤ 🔴'], ['🏆 TOP WINNERS', '🏆 TOP THẮNG LỚN'],
+    ['Please pick a table you can afford.', 'Vui lòng chọn bàn phù hợp với số chip của bạn.'],
+    ['You are out of chips. Press FREE CHIPS to claim some.', 'Bạn hết chip. Bấm CHIP MIỄN PHÍ để nhận thêm.'],
+    ['You are out of chips. We will open the game so you can claim free chips.', 'Bạn hết chip. Chúng tôi sẽ mở game để bạn nhận chip miễn phí.'],
+    ['Create a free account to claim daily chips and spins.', 'Hãy tạo tài khoản miễn phí để nhận chip và lượt quay mỗi ngày.'], ['Create a free account to play daily missions.', 'Hãy tạo tài khoản miễn phí để làm nhiệm vụ hằng ngày.'],
+    ['Create a free account to see the leaderboard.', 'Hãy tạo tài khoản miễn phí để xem bảng xếp hạng.'],
+    ['Online tables use your account, so your chips are saved and the same everywhere. Sign in or create a free account to play.', 'Bàn online dùng tài khoản của bạn, nên chip được lưu và giống nhau ở mọi nơi. Hãy đăng nhập hoặc tạo tài khoản miễn phí để chơi.'],
+    ['SIGN IN / CREATE ACCOUNT', 'ĐĂNG NHẬP / TẠO TÀI KHOẢN'], ['One account, one balance: the same money on every device, in single player and at online tables.', 'Một tài khoản, một số chip: giống nhau trên mọi thiết bị, khi chơi với máy và ở bàn online.'],
+    ['South Casino Edition', 'Phiên bản Casino Miền Nam'], ['Tiến Lên Miền Nam Casino', 'Casino Tiến Lên Miền Nam'], ['Tiến Lên Miền Nam · Play with people', 'Tiến Lên Miền Nam · Chơi cùng mọi người'],
+    // invite window
+    ['📣 INVITE FRIENDS', '📣 MỜI BẠN BÈ'], ['Send this link. It is free to play and works on phones and computers.', 'Gửi liên kết này. Chơi miễn phí, dùng được trên điện thoại và máy tính.'],
+    ['📋 COPY LINK', '📋 SAO CHÉP LIÊN KẾT'], ['📋 COPY INVITE LINK', '📋 SAO CHÉP LIÊN KẾT MỜI'], ['📋 INVITE LINK', '📋 LIÊN KẾT MỜI'], ['✉️ Text message', '✉️ Tin nhắn SMS'], ['📧 Email', '📧 Email'], ['↗ More apps...', '↗ Ứng dụng khác...'],
+    ['Link copied! Paste it anywhere.', 'Đã sao chép liên kết! Hãy dán vào bất cứ đâu.'], ['Link copied. Messenger opens in a new tab: paste it into a chat.', 'Đã sao chép liên kết. Messenger mở ở tab mới: hãy dán vào cuộc trò chuyện.'],
+    ['Link copied. Zalo opens in a new tab: paste it into a chat.', 'Đã sao chép liên kết. Zalo mở ở tab mới: hãy dán vào cuộc trò chuyện.'], ['Select the link above and copy it.', 'Hãy chọn liên kết ở trên và sao chép.'],
+    ['Invite link copied. Send it to your friends!', 'Đã sao chép liên kết mời. Hãy gửi cho bạn bè!'], ['Thanks for sharing!', 'Cảm ơn bạn đã chia sẻ!'],
+    ['Come play CyberNova Tiến Lên with me! Free chips every day. Play money only, 18+.', 'Chơi Tiến Lên CyberNova với mình nhé! Nhận chip miễn phí mỗi ngày. Chỉ là chip ảo, 18+.'],
+    // free chips, missions, leaderboard
+    ['🎁 FREE CHIPS', '🎁 CHIP MIỄN PHÍ'], ['OUT OF CHIPS?', 'HẾT CHIP?'], ['OUT OF CHIPS!', 'HẾT CHIP!'],
+    ['🎡 Free daily spin (win up to 100,000)', '🎡 Quay thưởng miễn phí mỗi ngày (trúng tối đa 100,000)'],
+    ['⏳ 4-Hour Bonus (+50,000)', '⏳ Thưởng 4 giờ (+50,000)'], ['⏳ 4-Hour Bonus (+50,000 READY!)', '⏳ Thưởng 4 giờ (+50,000 SẴN SÀNG!)'], ['🎁 Free Refill (+20,000)', '🎁 Nạp miễn phí (+20,000)'],
+    ['Refill added!', 'Đã nạp chip!'], ['Bonus added!', 'Đã nhận thưởng!'], ['DONE', 'XONG'],
+    ['No video was available right now. Please try again in a moment.', 'Hiện chưa có video. Vui lòng thử lại sau giây lát.'], ['no more videos today', 'hôm nay hết lượt xem video'],
+    ["You don't have enough chips to join this hand. Refill your bankroll to keep playing!", 'Bạn không đủ chip để vào ván này. Hãy nạp thêm chip để chơi tiếp!'],
+    ['📋 DAILY MISSIONS', '📋 NHIỆM VỤ HẰNG NGÀY'], ['They start again every day. Rewards go straight into your chips.', 'Nhiệm vụ làm mới mỗi ngày. Phần thưởng vào thẳng số chip của bạn.'],
+    ['Play 3 hands', 'Chơi 3 ván'], ['Play 10 hands', 'Chơi 10 ván'], ['Finish 1st twice', 'Về nhất 2 lần'], ['Finish in the top 2, five times', 'Về nhất hoặc nhì, 5 lần'], ['Play 3 hands at an online table', 'Chơi 3 ván ở bàn online'],
+    ['CLAIM', 'NHẬN'], ['CLAIMED ✓', 'ĐÃ NHẬN ✓'], ['IN PROGRESS', 'ĐANG LÀM'], ['CLAIMING...', 'ĐANG NHẬN...'],
+    ['Hands at online tables are counted by the server. Finishing 1st or in the top 2 is what counts for placings.', 'Các ván ở bàn online do máy chủ tính. Về nhất hoặc nhì là tính cho nhiệm vụ thứ hạng.'],
+    ['Missions are for signed-in players. Please sign in.', 'Nhiệm vụ dành cho người đã đăng nhập. Vui lòng đăng nhập.'], ['You already claimed this mission today.', 'Hôm nay bạn đã nhận nhiệm vụ này rồi.'], ['This mission is not finished yet.', 'Nhiệm vụ này chưa hoàn thành.'],
+    ['🏆 TOP WINNERS THIS WEEK', '🏆 TOP THẮNG LỚN TUẦN NÀY'], ['The biggest winners at online tables. The week starts again every Monday.', 'Những người thắng nhiều nhất ở bàn online. Tuần mới bắt đầu lại vào mỗi thứ Hai.'],
+    ['Nobody has won yet this week. Sit at an online table and be the first!', 'Tuần này chưa ai thắng. Hãy vào bàn online và là người đầu tiên!'],
+    ['You are not on the list yet. Win chips at an online table to join it.', 'Bạn chưa có tên trong danh sách. Hãy thắng chip ở bàn online để vào danh sách.'],
+    ['You are hidden from the list. You can show yourself again in your Profile.', 'Bạn đang bị ẩn khỏi danh sách. Bạn có thể hiện lại trong Hồ sơ.'],
+    ['Only online tables count, because the server works out those results. Single-player hands are not on the board.', 'Chỉ tính bàn online, vì máy chủ tự tính kết quả. Các ván chơi với máy không nằm trong bảng.'],
+    ['Could not load the leaderboard. Please try again in a moment.', 'Không tải được bảng xếp hạng. Vui lòng thử lại sau giây lát.'],
+    // profile
+    ['YOUR PROFILE', 'HỒ SƠ CỦA BẠN'], ['SAVE NAME & PICTURE', 'LƯU TÊN & ẢNH'], ['Remove picture', 'Xóa ảnh'], ['Current password', 'Mật khẩu hiện tại'], ['Your current password', 'Mật khẩu hiện tại của bạn'],
+    ['New password (at least 6 characters)', 'Mật khẩu mới (ít nhất 6 ký tự)'], ['Change password', 'Đổi mật khẩu'], ['CHANGE PASSWORD', 'ĐỔI MẬT KHẨU'], ['Change email', 'Đổi email'], ['New email address', 'Địa chỉ email mới'],
+    ['SEND CONFIRMATION TO NEW EMAIL', 'GỬI XÁC NHẬN ĐẾN EMAIL MỚI'], ['Password changed.', 'Đã đổi mật khẩu.'], ['Leaderboard', 'Bảng xếp hạng'], ['Show my name and picture on the weekly leaderboard', 'Hiện tên và ảnh của tôi trên bảng xếp hạng tuần'],
+    ['We email the new address. Your email changes after you click the link in that message.', 'Chúng tôi gửi email đến địa chỉ mới. Email của bạn đổi sau khi bạn bấm liên kết trong thư.'], ['and click the link to finish.', 'và bấm liên kết để hoàn tất.'],
+    ['You signed in with Google, so your email and password are managed by your Google account.', 'Bạn đăng nhập bằng Google, nên email và mật khẩu do tài khoản Google của bạn quản lý.'],
+    ['Delete my account', 'Xóa tài khoản của tôi'], ['This permanently deletes your account, your chips and your profile, and signs you out. It cannot be undone.', 'Việc này xóa vĩnh viễn tài khoản, chip và hồ sơ của bạn, và đăng xuất bạn. Không thể hoàn tác.'],
+    ['Type DELETE to confirm', 'Gõ DELETE để xác nhận'], ['DELETE MY ACCOUNT FOREVER', 'XÓA TÀI KHOẢN CỦA TÔI VĨNH VIỄN'], ['Please type DELETE to confirm.', 'Vui lòng gõ DELETE để xác nhận.'], ['Deleting...', 'Đang xóa...'],
+    ['Your account was deleted. Goodbye!', 'Tài khoản của bạn đã được xóa. Tạm biệt!'], ['Could not delete the account.', 'Không xóa được tài khoản.'],
+    ['Could not read that picture.', 'Không đọc được ảnh đó.'], ['Please choose a picture file.', 'Vui lòng chọn một tệp ảnh.'], ['That picture is too detailed. Try a simpler one.', 'Ảnh này quá chi tiết. Hãy thử ảnh đơn giản hơn.'],
+    // single-player game
+    ['CLICK DEAL TO START MATCH', 'BẤM CHIA BÀI ĐỂ BẮT ĐẦU'], ['DEAL MATCH', 'CHIA BÀI'], ['PASS', 'BỎ LƯỢT'], ['PLAY', 'ĐÁNH'], ['HAND FINISHED', 'VÁN ĐÃ KẾT THÚC'],
+    ['YOUR TURN: PLAY ANY COMBINATION', 'LƯỢT CỦA BẠN: ĐÁNH BỘ NÀO CŨNG ĐƯỢC'], ['YOUR TURN: START WITH THE 3♠', 'LƯỢT CỦA BẠN: ĐÁNH ĐẦU BẰNG 3♠'],
+    ['⚠️ CARDS CANNOT BEAT THE TABLE!', '⚠️ BÀI KHÔNG ĐÈ ĐƯỢC BÀI TRÊN BÀN!'], ['⚠️ INVALID CARD COMBINATION!', '⚠️ BỘ BÀI KHÔNG HỢP LỆ!'], ['⚠️ OPENING PLAY MUST INCLUDE 3♠!', '⚠️ NƯỚC ĐẦU PHẢI CÓ 3♠!'],
+    ['that does not beat the table', 'bài đó không đè được bài trên bàn'], ['not a valid combination', 'không phải bộ bài hợp lệ'], ['the opening play must include the 3 of spades', 'nước đi đầu phải có 3 bích'],
+    ['you do not hold that card', 'bạn không có lá bài đó'], ['you must play a card', 'bạn phải đánh một lá'], ['you are out of this hand', 'bạn đã hết ván này'], ['no hand in progress', 'chưa có ván nào đang chơi'], ['not signed in', 'chưa đăng nhập'],
+    ['Cleared Hand!', 'Hết bài!'], ['Cleared hand!', 'Hết bài!'], ['🏆 RESULTS 🏆', '🏆 BẢNG KẾT QUẢ 🏆'], ['THOÁT', 'THOÁT'], ['LEAVE', 'RỜI BÀN'], ['READY', 'SẴN SÀNG'], ['VÁN MỚI', 'VÁN MỚI'],
+    ['#1 PLACE', '#1 HẠNG NHẤT'], ['#2 PLACE', '#2 HẠNG NHÌ'], ['#3 PLACE', '#3 HẠNG BA'], ['#4 PLACE', '#4 HẠNG BÉT'], ['#4 HẠNG BẾT', '#4 HẠNG BÉT'], ['1ST PLACE', 'HẠNG NHẤT'], ['2ND PLACE', 'HẠNG NHÌ'], ['3RD PLACE', 'HẠNG BA'], ['4TH PLACE', 'HẠNG BÉT'],
+    ['BỊ CÓNG', 'BỊ CÓNG'], ['LOCKED OUT', 'BỊ CÓNG'], ['SINGLE', 'LÁ LẺ'], ['PAIR', 'ĐÔI'], ['TRIPLE', 'SÁM'], ['QUAD', 'TỨ QUÝ'], ['STRAIGHT', 'SẢNH'], ['3 PAIR STRAIGHT', '3 ĐÔI THÔNG'], ['4 PAIR STRAIGHT', '4 ĐÔI THÔNG'], ['5 PAIR STRAIGHT', '5 ĐÔI THÔNG'],
+    ['💥 CHOP! 💥', '💥 CHẶT! 💥'], ['⚡ CHẶT / CHOP!', '⚡ CHẶT!'], ['🐷 HEO 🐷', '🐷 HEO 🐷'], ['💥 ĐÔI HEO 💥', '💥 ĐÔI HEO 💥'], ['👑 TỚI TRẮNG:', '👑 TỚI TRẮNG:'],
+    ['5 ĐÔI THÔNG (5 CONSECUTIVE PAIRS)', '5 ĐÔI THÔNG'], ['6 ĐÔI (6 PAIRS)', '6 ĐÔI'], ['SẢNH RỒNG (DRAGON STRAIGHT)', 'SẢNH RỒNG'], ['TỨ QUÝ 3 (FOUR 3s)', 'TỨ QUÝ 3'], ['TỨ QUÝ HEO (4 TWOS)', 'TỨ QUÝ HEO'],
+    ['HOUSE RULES', 'LUẬT NHÀ'], ['⚙ HOUSE RULES', '⚙ LUẬT NHÀ'], ['RED DAMASK', 'ĐỎ DAMASK'], ['EMERALD FELT', 'XANH NHUNG'], ['🔊 SFX: ON', '🔊 ÂM THANH: BẬT'], ['🔇 SFX: OFF', '🔇 ÂM THANH: TẮT'], ['🎵 MUSIC: ON', '🎵 NHẠC: BẬT'], ['🎵 MUSIC: OFF', '🎵 NHẠC: TẮT'],
+    ['💬 HELP', '💬 TRỢ GIÚP'], ['📄 TERMS', '📄 ĐIỀU KHOẢN'], ['Menu', 'Menu'], ['⚡ Normal AI', '⚡ Máy Thường'], ['🧠 Hard AI (Card Counting & Traps)', '🧠 Máy Khó (đếm bài & đặt bẫy)'], ['🌱 Easy AI (for beginners)', '🌱 Máy Dễ (cho người mới)'], ['Easy (for beginners)', 'Dễ (cho người mới)'],
+    ['Always on: four 2s, six pairs and the dragon straight win instantly. Chop a 2 with 3 pairs in a row, a quad or 4 pairs in a row. A quad or 4 pairs in a row chops a pair of 2s. Cóng and last-place payments always add up to zero.', 'Luôn bật: tứ quý heo, sáu đôi và sảnh rồng thắng ngay. Chặt heo bằng 3 đôi thông, tứ quý hoặc 4 đôi thông. Tứ quý hoặc 4 đôi thông chặt được đôi heo. Tiền cóng và tiền bét luôn cộng lại bằng không.'],
+    ['Every table plays a little differently. Changes apply from the next hand.', 'Mỗi bàn chơi hơi khác nhau. Thay đổi có hiệu lực từ ván sau.'], ['HOUSE RULES SAVED: they apply from the next hand', 'ĐÃ LƯU LUẬT NHÀ: áp dụng từ ván sau'],
+    ['Five pairs in a row in your dealt hand wins instantly.', 'Chia được năm đôi thông thì thắng ngay.'], ['Four 3s in your dealt hand wins instantly.', 'Chia được tứ quý 3 thì thắng ngay.'],
+    ['5 đôi thông tới trắng', '5 đôi thông tới trắng'], ['5 đôi thông wins instantly', '5 đôi thông thắng ngay'], ['Tứ quý 3 tới trắng', 'Tứ quý 3 tới trắng'], ['Tứ quý 3 wins instantly', 'Tứ quý 3 thắng ngay'],
+    ['Thối: last place pays', 'Thối: người về bét trả'], ['Thối: last place pays for 2s / bombs', 'Thối: người về bét trả tiền heo / tứ quý'], ['Whoever finishes last pays the winner for 2s, quads and pair-straights still in hand.', 'Người về bét trả cho người thắng tiền heo, tứ quý và đôi thông còn trên tay.'],
+    ['Chặt chồng: first chop is refunded', 'Chặt chồng: hoàn tiền chặt đầu'], ['Chặt chồng: refund the first chop', 'Chặt chồng: hoàn tiền chặt đầu'], ['If a chop gets chopped, the first chopper gives the bounty back to the owner of the 2.', 'Nếu bị chặt chồng, người chặt đầu trả lại tiền thưởng cho chủ con heo.'],
+    // online page
+    ['TABLE CODE', 'MÃ BÀN'], ['CREATE A TABLE', 'TẠO BÀN'], ['QUICK GAME vs BOTS', 'CHƠI NHANH VỚI MÁY'], ['OR JOIN A FRIEND\'S TABLE', 'HOẶC VÀO BÀN CỦA BẠN BÈ'], ['CODE', 'MÃ'], ['JOIN', 'VÀO'], ['← Back to the lobby', '← Về sảnh'], ['LEAVE TABLE', 'RỜI BÀN'],
+    ['Type the table code your friend sent you.', 'Nhập mã bàn mà bạn của bạn đã gửi.'], ['Could not connect to that table. Check the code and try again.', 'Không vào được bàn đó. Hãy kiểm tra mã và thử lại.'], ['That table is full.', 'Bàn đó đã đầy.'], ['The table was closed.', 'Bàn đã đóng.'],
+    ['The host removed you from the table.', 'Chủ bàn đã mời bạn rời bàn.'], ['This table was opened in another window or tab.', 'Bàn này đã được mở ở cửa sổ hoặc tab khác.'],
+    ['You were removed from the table because you missed 2 turns in a row. Your hand was finished by a bot. Sit down again whenever you are back.', 'Bạn bị mời rời bàn vì bỏ lỡ 2 lượt liên tiếp. Máy đã đánh nốt ván của bạn. Hãy ngồi lại bất cứ khi nào bạn quay lại.'],
+    ['Connection lost. Reconnecting…', 'Mất kết nối. Đang kết nối lại…'], ['COULD NOT CONNECT. CHECK YOUR INTERNET AND RELOAD', 'KHÔNG KẾT NỐI ĐƯỢC. HÃY KIỂM TRA MẠNG VÀ TẢI LẠI TRANG'], ['COULD NOT LOAD YOUR ACCOUNT. CHECK YOUR INTERNET AND RELOAD', 'KHÔNG TẢI ĐƯỢC TÀI KHOẢN. HÃY KIỂM TRA MẠNG VÀ TẢI LẠI TRANG'],
+    ['Online table', 'Bàn online'], ['Table settings', 'Cài đặt bàn'], ['Stake per hand', 'Mức cược mỗi ván'], ['Bots play as', 'Máy chơi ở mức'], ['Fill empty seats with bots', 'Điền ghế trống bằng máy'], ['Empty seat', 'Ghế trống'], ['+ NORMAL BOT', '+ MÁY THƯỜNG'], ['+ HARD BOT', '+ MÁY KHÓ'], ['BOT', 'MÁY'], ['HOST', 'CHỦ BÀN'], ['YOU', 'BẠN'],
+    ['START GAME', 'BẮT ĐẦU'], ['WAITING…', 'ĐANG CHỜ…'], ['Waiting for the host to start the game…', 'Đang chờ chủ bàn bắt đầu…'], ['You are out of chips for this table, so a bot plays your cards.', 'Bạn không đủ chip cho bàn này, nên máy sẽ đánh bài thay bạn.'], ['GET FREE CHIPS', 'NHẬN CHIP MIỄN PHÍ'],
+    ['Everyone plays with their own account chips, the same chips as everywhere else. Chips are game credits with no cash value. Anyone without enough chips for the stake sits a hand out until they get a refill.', 'Mọi người chơi bằng chip của tài khoản mình, cùng số chip ở mọi nơi. Chip chỉ là điểm trong game, không có giá trị tiền. Ai không đủ chip cho mức cược sẽ ngồi ngoài một ván cho đến khi nạp thêm.'],
+    ['cards left', 'lá còn lại'], ['Avatar', 'Ảnh đại diện'], ['Player', 'Người chơi'],
+    ['Chips', 'Chip'], ['· same on every page', '· giống nhau ở mọi trang'], ['Normal', 'Thường'], ['Hard', 'Khó'], ['Easy', 'Dễ'],
+    ['CYBER NOVA', 'CYBER NOVA'], ['CYBERNOVA', 'CYBERNOVA'], ['CYBERNOVA: Portal & Table Lobby', 'CYBERNOVA: Cổng vào & Sảnh bàn'], ['CYBERNOVA: Tiến Lên Online', 'CYBERNOVA: Tiến Lên Online'], ['CYBERNOVA: Tiến Lên Miền Nam Pro', 'CYBERNOVA: Tiến Lên Miền Nam Pro'],
+    ['CyberNova Tiến Lên: Privacy Policy and Terms', 'CyberNova Tiến Lên: Chính sách riêng tư và Điều khoản'], ['Privacy Policy and Terms', 'Chính sách riêng tư và Điều khoản'], ['Delete your account and data', 'Xóa tài khoản và dữ liệu'], ['Play the game', 'Chơi game'],
+    ['DELETE MY ACCOUNT...', 'XÓA TÀI KHOẢN...'], ['Sign in first, then come back to this page to delete your account.', 'Hãy đăng nhập trước, rồi quay lại trang này để xóa tài khoản.'], ['You are signed in as', 'Bạn đang đăng nhập bằng']
+  ];
+
+  // ---------------------------------------------------------------- texts with changing parts. [regex, vietnamese template]. $1, $2 are the captured parts.
+  var COMBO = { 'SINGLE': 'LÁ LẺ', 'PAIR': 'ĐÔI', 'TRIPLE': 'SÁM', 'QUAD': 'TỨ QUÝ', 'STRAIGHT': 'SẢNH', '3PAIR_STRAIGHT': '3 ĐÔI THÔNG', '4PAIR_STRAIGHT': '4 ĐÔI THÔNG', '5PAIR_STRAIGHT': '5 ĐÔI THÔNG', '3 PAIR STRAIGHT': '3 ĐÔI THÔNG', '4 PAIR STRAIGHT': '4 ĐÔI THÔNG', '5 PAIR STRAIGHT': '5 ĐÔI THÔNG' };
+  function combo(t) { var k = String(t).toUpperCase().replace(/-/g, '_'); return COMBO[k] || COMBO[k.replace(/_/g, ' ')] || t; }
+  var PATTERNS = [
+    [/^YOUR TURN: BEAT (.+) OR PASS$/, 'LƯỢT CỦA BẠN: ĐÁNH CAO HƠN $1 HOẶC BỎ LƯỢT'],
+    [/^(.+) IS THINKING…$/, '$1 ĐANG SUY NGHĨ…'],
+    [/^🏆 (.+) WINS! 🏆$/, '🏆 $1 THẮNG! 🏆'],
+    [/^🏆 (.+) WINNER 1ST PLACE! 🏆$/, '🏆 $1 VỀ NHẤT! 🏆'],
+    [/^(.+) holds 3 of Spades and starts Game (\d+)!$/, '$1 cầm 3 bích và đi trước ván $2!'],
+    [/^(.+) won last game and starts!$/, '$1 thắng ván trước nên đi trước!'],
+    [/^(.+) played ([A-Z0-9_ -]+) \((\d+) cards?\)$/, function (m) { return m[1] + ' đánh ' + combo(m[2]) + ' (' + m[3] + ' lá)'; }],
+    [/^(\d+) Cards?$/, '$1 lá'],
+    [/^Remaining: (\d+) cards?$/, 'Còn lại: $1 lá'],
+    [/^(\d+) cards left$/, 'còn $1 lá'],
+    [/^(\d+) \/ Hand$/, '$1 / ván'],
+    [/^([\d,]+) \/ Hand$/, '$1 / ván'],
+    [/^Min Balance: ([\d,]+)$/, 'Tối thiểu: $1'],
+    [/^TABLE:? ([\d,]+)$/, 'BÀN: $1'],
+    [/^Phạt Cóng \+ Thối: -([\d,.KM]+)$/, 'Phạt Cóng + Thối: -$1'],
+    [/^Next hand starts in (\d+)s, or as soon as everyone is ready$/, 'Ván mới bắt đầu sau $1 giây, hoặc ngay khi mọi người sẵn sàng'],
+    [/^BONUS CLAIMED! \+([\d,]+) ADDED$/, 'ĐÃ NHẬN THƯỞNG! +$1 ĐÃ ĐƯỢC CỘNG'], [/^REFILL CLAIMED! \+([\d,]+) ADDED$/, 'ĐÃ NẠP! +$1 ĐÃ ĐƯỢC CỘNG'], [/^FREE REFILL CLAIMED! \+([\d,]+) ADDED$/, 'ĐÃ NẠP MIỄN PHÍ! +$1 ĐÃ ĐƯỢC CỘNG'], [/^GUEST REFILL IN (\d+) SECONDS\.\.\.$/, 'NẠP CHO KHÁCH SAU $1 GIÂY...'],
+    [/^BOT DIFFICULTY: (.+) MODE$/, 'ĐỘ KHÓ CỦA MÁY: CHẾ ĐỘ $1'],
+    [/^Signed in as (.+?)\s+·\s+([\d,]+) chips\. This is the same account and the same chips on every page\. Chips are game credits with no cash value\.$/, 'Đăng nhập bằng $1 · $2 chip. Đây là cùng một tài khoản và cùng số chip trên mọi trang. Chip chỉ là điểm trong game, không có giá trị tiền.'],
+    [/^You have ([\d,]+) chips\. Free chips go straight into your account\. Chips are game credits with no cash value\.$/, 'Bạn có $1 chip. Chip miễn phí vào thẳng tài khoản của bạn. Chip chỉ là điểm trong game, không có giá trị tiền.'],
+    [/^Chips ([\d,.KM]+)$/, 'Chip $1'],
+    [/^Check (.+) and click the link to finish\.$/, 'Hãy kiểm tra $1 và bấm liên kết để hoàn tất.'],
+    [/^Day (\d+) reward: \+([\d,]+) chips!$/, 'Quà ngày $1: +$2 chip!'],
+    [/^\+([\d,]+) chips for "(.+)"!$/, '+$1 chip cho nhiệm vụ "$2"!'],
+    [/^🎡 You won ([\d,]+) chips!$/, '🎡 Bạn trúng $1 chip!'],
+    [/^\+([\d,]+) chips\. Thank you for watching!$/, '+$1 chip. Cảm ơn bạn đã xem!'],
+    [/^DAY (\d+)\s+([\d,.KM]+)$/, 'NGÀY $1 $2'],
+    [/^📅 Daily reward · day (\d+): \+([\d,]+)$/, '📅 Quà hằng ngày · ngày $1: +$2'],
+    [/^🎡 Free daily spin \(win up to ([\d,]+)\)$/, '🎡 Quay thưởng miễn phí mỗi ngày (trúng tối đa $1)'],
+    [/^🎬 Watch a video: \+([\d,]+) \((\d+) left today\)$/, '🎬 Xem video: +$1 (còn $2 lượt hôm nay)'],
+    [/^🎁 Free refill\s+\+([\d,]+)$/, '🎁 Nạp miễn phí  +$1'], [/^⏳ 4-hour bonus\s+\+([\d,]+)$/, '⏳ Thưởng 4 giờ  +$1'], [/^⏳ 4-Hour Bonus \(\+([\d,]+)\)$/, '⏳ Thưởng 4 giờ (+$1)'],
+    [/^ready in (\d+) h (\d+) min$/, 'còn $1 giờ $2 phút'], [/^ready in (\d+) min$/, 'còn $1 phút'], [/^when under ([\d,]+)$/, 'khi dưới $1'],
+    [/^Your rank: #(\d+) \(\+([\d,]+) this week\)$/, 'Hạng của bạn: #$1 (+$2 tuần này)'],
+    [/^You need at least ([\d,]+) chips for this table\. Pick a smaller table, or press FREE CHIPS\.$/, 'Bạn cần ít nhất $1 chip cho bàn này. Hãy chọn bàn nhỏ hơn, hoặc bấm CHIP MIỄN PHÍ.'],
+    [/^(.+) \(you\)$/, '$1 (bạn)'], [/^(.+) \(Guest\)$/, '$1 (Khách)'],
+    [/^Cóng fine: -(.+)$/, 'Phạt cóng: -$1'],
+    [/^Thối \(2s \/ bombs left\): -(.+)$/, 'Thối (heo / tứ quý còn lại): -$1'],
+    [/^Phạt Thối \(2s \/ bombs left\): -(.+)$/, 'Phạt Thối (heo / tứ quý còn lại): -$1'],
+    [/^💥 CHOP! \((.+)\) \+(.+) 💥$/, '💥 CHẶT! ($1) +$2 💥'],
+    [/^💥 CHOP! (.+) \+([\d,.KM]+) 💥$/, '💥 CHẶT! $1 +$2 💥'],
+    [/^TABLE ([\d,.KM]+)$/, 'BÀN $1'],
+    [/^Menu$/, 'Menu']
+  ];
+  // the few Vietnamese texts of the original page, and their English
+  var VI_PATTERNS = [[/^Phạt Cóng \+ Thối: -(.+)$/, 'Cóng + Thối fine: -$1'], [/^Phạt Thối \(heo \/ tứ quý còn lại\): -(.+)$/, 'Thối fine (2s / bombs left): -$1'], [/^Phạt Thối \(2s \/ bombs left\): -(.+)$/, 'Thối fine (2s / bombs left): -$1'], [/^Thối \(2s \/ bombs left\): -(.+)$/, 'Thối (2s / bombs left): -$1'], [/^Phạt cóng: -(.+)$/, 'Cóng fine: -$1']];
+  var VI_ONLY = [['BỎ LƯỢT', 'PASS'], ['THOÁT', 'EXIT'], ['VÁN MỚI', 'NEW GAME'], ['BỊ CÓNG', 'LOCKED OUT (CÓNG)'], ['🏆 BẢNG KẾT QUẢ 🏆', '🏆 RESULTS 🏆'], ['#1 HẠNG NHẤT', '#1 PLACE'], ['#2 HẠNG NHÌ', '#2 PLACE'], ['#3 HẠNG BA', '#3 PLACE'], ['#4 HẠNG BẾT', '#4 PLACE'], ['#4 HẠNG BÉT', '#4 PLACE'], ['HẠNG NHẤT', '1ST PLACE'],
+    ['5 đôi thông tới trắng', '5 pairs in a row: instant win'], ['Tứ quý 3 tới trắng', 'Four 3s: instant win'], ['👑 TỚI TRẮNG:', '👑 INSTANT WIN:'], ['💥 ĐÔI HEO 💥', '💥 PAIR OF 2s 💥'], ['🐷 HEO 🐷', '🐷 TWO (HEO) 🐷'], ['⚡ CHẶT / CHOP!', '⚡ CHOP!'], ['5 ĐÔI THÔNG (5 CONSECUTIVE PAIRS)', '5 PAIRS IN A ROW'], ['6 ĐÔI (6 PAIRS)', '6 PAIRS'], ['SẢNH RỒNG (DRAGON STRAIGHT)', 'DRAGON STRAIGHT'], ['TỨ QUÝ 3 (FOUR 3s)', 'FOUR 3s'], ['TỨ QUÝ HEO (4 TWOS)', 'FOUR 2s'], ['XẾP BÀI', 'SORT']];
+
+  // ---------------------------------------------------------------- engine
+  var EN2VI = {}, VI2EN = {};
+  function norm(s) { return String(s).replace(/\s+/g, ' ').trim(); }
+  PAIRS.forEach(function (p) { if (!(norm(p[0]) in EN2VI)) EN2VI[norm(p[0])] = p[1]; if (p[1] !== p[0] && !(norm(p[1]) in VI2EN)) VI2EN[norm(p[1])] = p[0]; });
+  VI_ONLY.forEach(function (p) { VI2EN[norm(p[0])] = p[1]; });
+  // some Vietnamese strings stand for two English ones: keep the first, they are interchangeable
+  function whole(core) {
+    if (lang === 'vi') {
+      if (EN2VI.hasOwnProperty(core)) return EN2VI[core];
+      for (var i = 0; i < PATTERNS.length; i++) { var m = core.match(PATTERNS[i][0]); if (m) { var t = PATTERNS[i][1]; return typeof t === 'function' ? t(m) : t.replace(/\$(\d)/g, function (_, n) { return m[+n]; }); } }
+      return undefined;
+    }
+    if (VI2EN.hasOwnProperty(core)) return VI2EN[core];
+    for (var k = 0; k < VI_PATTERNS.length; k++) { var mm = core.match(VI_PATTERNS[k][0]); if (mm) return VI_PATTERNS[k][1].replace(/\$(\d)/g, function (_, n) { return mm[+n]; }); }
+    return undefined;
+  }
+  function translate(core) {
+    var r = whole(core); if (r !== undefined) return r;
+    if (core.indexOf(' · ') > 0) {                                      // "something · something else": translate each part
+      var parts = core.split(' · '), any = false, out = parts.map(function (p) { var x = whole(p); if (x !== undefined) { any = true; return x; } return p; });
+      if (any) return out.join(' · ');
+    }
+    return undefined;
+  }
+  function trText(text) {
+    var core = norm(text); if (!core) return text;
+    var out = translate(core); if (out === undefined) return text;
+    var m = text.match(/^(\s*)[\s\S]*?(\s*)$/); return (m ? m[1] : '') + out + (m ? m[2] : '');
+  }
+  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  function skipped(node) { for (var n = node.nodeType === 3 ? node.parentNode : node; n && n.nodeType === 1; n = n.parentNode) { var tg = n.nodeName; if (tg === 'SCRIPT' || tg === 'STYLE' || tg === 'TEXTAREA' || (n.hasAttribute && n.hasAttribute('data-no-i18n'))) return true; } return false; }
+  function procText(node) {
+    var cur = node.nodeValue; if (node.__t !== undefined && cur === node.__t) return;
+    if (skipped(node)) return;
+    var t = trText(cur); node.__o = cur;
+    if (t !== cur) { node.__t = t; node.nodeValue = t; } else node.__t = undefined;
+  }
+  function procAttrs(el) {
+    if (el.nodeType !== 1 || skipped(el)) return;
+    ATTRS.forEach(function (a) {
+      if (!el.hasAttribute(a)) return; var cur = el.getAttribute(a); el.__a = el.__a || {}; var rec = el.__a[a];
+      if (rec && rec.t === cur) return; var t = trText(cur); el.__a[a] = { o: cur, t: t };
+      if (t !== cur) el.setAttribute(a, t);
+    });
+  }
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { procText(root); return; }
+    if (root.nodeType !== 1 && root.nodeType !== 9 && root.nodeType !== 11) return;
+    if (root.nodeType === 1) { if (skipped(root)) return; procAttrs(root); }
+    for (var c = root.firstChild; c; c = c.nextSibling) walk(c);
+  }
+  // after the language changes, put every text back to its original and translate it again
+  function retranslate(root) {
+    if (!root) return;
+    if (root.nodeType === 3) {
+      var cur = root.nodeValue, base = (root.__t !== undefined && cur === root.__t) ? root.__o : cur;
+      if (skipped(root)) return; var t = trText(base); root.__o = base;
+      if (t !== root.nodeValue) { root.nodeValue = t; } root.__t = t !== base ? t : undefined; return;
+    }
+    if (root.nodeType === 1) {
+      if (skipped(root)) return;
+      ATTRS.forEach(function (a) {
+        if (!root.hasAttribute(a)) return; var rec = root.__a && root.__a[a], cur = root.getAttribute(a), base = rec && rec.t === cur ? rec.o : cur, t = trText(base);
+        root.__a = root.__a || {}; root.__a[a] = { o: base, t: t }; if (t !== cur) root.setAttribute(a, t);
+      });
+    }
+    for (var c = root.firstChild; c; c = c.nextSibling) retranslate(c);
+  }
+  var obs = null;
+  function start() {
+    if (obs || !document.documentElement) return;
+    obs = new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) {
+        var m = ms[i];
+        if (m.type === 'characterData') procText(m.target);
+        else if (m.type === 'attributes') procAttrs(m.target);
+        else for (var j = 0; j < m.addedNodes.length; j++) walk(m.addedNodes[j]);
+      }
+    });
+    obs.observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+    walk(document.documentElement);
+  }
+  function paintButtons() {
+    document.documentElement.lang = lang;
+    var els = document.querySelectorAll('[data-lang-btn]');
+    for (var i = 0; i < els.length; i++) { els[i].textContent = lang === 'vi' ? '🌐 EN' : '🌐 VI'; els[i].setAttribute('title', lang === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'); els[i].setAttribute('aria-label', lang === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'); }
+  }
+  function setLang(l, quiet) {
+    if (l !== 'en' && l !== 'vi') return;
+    var changed = l !== lang; lang = l;
+    try { localStorage.setItem(KEY, l); localStorage.setItem('cybernova_help_lang', l); } catch (e) {}
+    if (changed || quiet) retranslate(document.documentElement);
+    paintButtons();
+    try { window.dispatchEvent(new CustomEvent('cn-lang', { detail: l })); } catch (e) {}
+  }
+  // alert() and prompt() texts too
+  ['alert', 'confirm'].forEach(function (fn) { var orig = window[fn]; if (orig) window[fn] = function (m) { return orig.call(window, trText(String(m))); }; });
+  var origPrompt = window.prompt; if (origPrompt) window.prompt = function (m, d) { return origPrompt.call(window, trText(String(m)), d); };
+
+  window.CNLang = { get: function () { return lang; }, set: setLang, toggle: function () { setLang(lang === 'vi' ? 'en' : 'vi'); }, tr: trText, refresh: function () { retranslate(document.documentElement); paintButtons(); } };
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function () { start(); walk(document.documentElement); paintButtons(); }); start(); } else { start(); paintButtons(); }
+})();
+  </script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1370786646765613" crossorigin="anonymous"></script>
   <style>
     body { margin: 0; background: #0b0e17; color: #e8eefc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
@@ -24,11 +317,11 @@
 </head>
 <body>
 <main>
-  <div class="lang"><button id="bEn" class="on" onclick="setL('en')">EN</button><button id="bVi" onclick="setL('vi')">VI</button></div>
+  <div class="lang"><button id="bEn" onclick="CNLang.set('en')">EN</button><button id="bVi" onclick="CNLang.set('vi')">VI</button></div>
   <h1>CyberNova Tiến Lên</h1>
   <p id="sub">Privacy Policy and Terms &middot; <a href="register.html">Play the game</a></p>
 
-  <div id="en">
+  <div id="en" data-no-i18n>
     <h2>Privacy Policy and Terms</h2>
     <h3>Play money only</h3><p>CyberNova is a free card game for entertainment. Chips are game credits with no cash value. They cannot be exchanged for money, prizes or anything of value, and there is no way to cash out. Playing here gives no chance to win real money or prizes.</p><h3>Who can play</h3><p>CyberNova is for adults aged 18 and over. If you are under 18, please do not play.</p><h3>Your account</h3><p>You sign in with Google or with an email and password. Passwords are handled by Google Firebase Authentication and we never see them. We keep your name, email address, the picture you choose, your chip balance and your game results so your account works on every device. Other players at your table can see your name and picture, and if you win chips at online tables the weekly leaderboard shows them too. You can hide yourself from the leaderboard in Profile.</p><h3>Other data</h3><p>Messages you send through Send feedback are stored so we can read them. When the game crashes it can send us a short error report without personal details. If video rewards are switched on, the advertising provider may use cookies or device identifiers under its own privacy policy. We do not sell your personal data.</p><h3>Fair play</h3><p>Please play fair: no cheating, no bots or automation, no abusing bugs. We may correct chip balances, or suspend accounts, that break these rules.</p><h3>The service</h3><p>The game is provided as is and may change, be interrupted or be stopped at any time. Chips and accounts are not property and have no value.</p><h3>Your data</h3><p>You can delete your account yourself at any time: open Profile, then Delete my account. That removes your account, chips and profile. To see or correct your data, or to remove feedback messages you sent, or if you cannot sign in, send us a message in Send feedback and include the email of your account.</p>
     <h2 id="delete">Delete your account and data</h2>
@@ -37,7 +330,7 @@
     <p style="margin-top:14px">Questions, or you cannot sign in? Use the game's <b>HELP</b> button, then <b>Send feedback</b>, and include the email address of your account.</p>
   </div>
 
-  <div id="vi" style="display:none">
+  <div id="vi" style="display:none" data-no-i18n>
     <h2>Chính sách riêng tư và Điều khoản</h2>
     <h3>Chỉ là tiền ảo</h3><p>CyberNova là game bài miễn phí để giải trí. Chip chỉ là điểm trong game, không có giá trị quy đổi ra tiền. Chip không thể đổi lấy tiền, giải thưởng hay bất cứ thứ gì có giá trị, và không có cách rút chip. Chơi ở đây không có cơ hội thắng tiền thật hay giải thưởng.</p><h3>Ai được chơi</h3><p>CyberNova dành cho người từ 18 tuổi trở lên. Nếu bạn dưới 18 tuổi, vui lòng không chơi.</p><h3>Tài khoản của bạn</h3><p>Bạn đăng nhập bằng Google hoặc bằng email và mật khẩu. Mật khẩu do Google Firebase Authentication xử lý và chúng tôi không bao giờ thấy. Chúng tôi lưu tên, email, ảnh bạn chọn, số chip và kết quả ván chơi để tài khoản dùng được trên mọi thiết bị. Người chơi cùng bàn thấy được tên và ảnh của bạn, và nếu bạn thắng chip ở bàn online thì bảng xếp hạng tuần cũng hiển thị chúng. Bạn có thể ẩn mình khỏi bảng xếp hạng trong Profile.</p><h3>Dữ liệu khác</h3><p>Tin nhắn bạn gửi qua Gửi góp ý được lưu lại để chúng tôi đọc. Khi game bị lỗi, game có thể gửi cho chúng tôi một báo cáo ngắn không kèm thông tin cá nhân. Nếu bật tính năng xem video nhận thưởng, nhà cung cấp quảng cáo có thể dùng cookie hoặc mã thiết bị theo chính sách riêng tư của họ. Chúng tôi không bán dữ liệu cá nhân của bạn.</p><h3>Chơi công bằng</h3><p>Vui lòng chơi công bằng: không gian lận, không dùng bot hay tự động hóa, không lợi dụng lỗi. Chúng tôi có thể điều chỉnh số chip hoặc khóa tài khoản vi phạm.</p><h3>Dịch vụ</h3><p>Game được cung cấp nguyên trạng và có thể thay đổi, gián đoạn hoặc dừng bất cứ lúc nào. Chip và tài khoản không phải tài sản và không có giá trị.</p><h3>Dữ liệu của bạn</h3><p>Bạn có thể tự xóa tài khoản bất cứ lúc nào: mở Profile, rồi chọn Delete my account. Việc này xóa tài khoản, chip và hồ sơ của bạn. Để xem hoặc sửa dữ liệu, xóa tin góp ý bạn đã gửi, hoặc nếu bạn không đăng nhập được, hãy gửi tin trong mục Gửi góp ý kèm email của tài khoản.</p>
     <h2>Xóa tài khoản và dữ liệu</h2>
@@ -182,7 +475,8 @@
   var iov = null;
   function gameLink() { return location.href.split('#')[0].split('?')[0].replace(/[^\/]*$/, '') + 'register.html'; }
   CN.invite = function () {
-    var link = gameLink(), text = 'Come play CyberNova Tiến Lên with me! Free chips every day. Play money only, 18+.';
+    var vi = !window.CNLang || CNLang.get() === 'vi';                                    // the message follows the language the person is using
+    var link = gameLink(), text = vi ? 'Chơi Tiến Lên CyberNova với mình nhé! Nhận chip miễn phí mỗi ngày. Chỉ là chip ảo, không đổi thưởng, 18+.' : 'Come play CyberNova Tiến Lên with me! Free chips every day. Play money only, 18+.';
     var both = encodeURIComponent(text + ' ' + link), mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
     if (!iov) { iov = el('div', { id: 'cnp-overlay4', style: 'position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100004;padding:10px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif' }); document.body.appendChild(iov); iov.addEventListener('mousedown', function (e) { if (e.target === iov) iov.style.display = 'none'; }); }
     iov.textContent = '';
@@ -209,7 +503,7 @@
     btn('🟢 WhatsApp', { href: 'https://wa.me/?text=' + both, target: '_blank', rel: 'noopener' });
     btn('🔵 Zalo', null, async function () { await copy(); say('Link copied. Zalo opens in a new tab: paste it into a chat.'); window.open('https://chat.zalo.me/', '_blank', 'noopener'); });
     if (mobile) btn('✉️ Text message', { href: 'sms:?&body=' + both });
-    btn('📧 Email', { href: 'mailto:?subject=' + encodeURIComponent('Play CyberNova Tiến Lên with me') + '&body=' + both });
+    btn('📧 Email', { href: 'mailto:?subject=' + encodeURIComponent(vi ? 'Chơi Tiến Lên CyberNova với mình nhé' : 'Play CyberNova Tiến Lên with me') + '&body=' + both });
     if (navigator.share) btn('↗ More apps...', null, async function () { try { await navigator.share({ title: 'CyberNova Tiến Lên', text: text, url: link }); } catch (e) {} });
     b.appendChild(note);
     var c = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, 'CLOSE'); c.onclick = function () { iov.style.display = 'none'; }; b.appendChild(c);
@@ -581,8 +875,8 @@
     ]
   };
 
-  var lang = 'en';
-  try { lang = localStorage.getItem('cybernova_help_lang') || ((navigator.language || '').toLowerCase().indexOf('vi') === 0 ? 'vi' : 'en'); } catch (e) {}
+  var lang = 'vi';
+  try { lang = (window.CNLang && CNLang.get()) || localStorage.getItem('cybernova_lang') || localStorage.getItem('cybernova_help_lang') || 'vi'; } catch (e) {}
   if (!T[lang]) lang = 'en';
 
   // ------------------------------------------------------------------ styles
@@ -615,7 +909,7 @@
 
   function build() {
     if (overlay) return;
-    overlay = el('div', { id: 'cnfb-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Help and feedback' });
+    overlay = el('div', { id: 'cnfb-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Help and feedback', 'data-no-i18n': '' });
     var box = el('div', { id: 'cnfb-box' });
     var head = el('div', { id: 'cnfb-head' });
     titleEl = el('h2'); head.appendChild(titleEl);
@@ -635,7 +929,8 @@
     document.body.appendChild(overlay);
   }
 
-  function setLang(l) { lang = l; try { localStorage.setItem('cybernova_help_lang', l); } catch (e) {} render(); }
+  function setLang(l) { lang = l; if (window.CNLang) CNLang.set(l); else { try { localStorage.setItem('cybernova_help_lang', l); } catch (e) {} } if (overlay) render(); }
+  window.addEventListener('cn-lang', function (e) { if (e.detail && e.detail !== lang) { lang = e.detail; if (overlay && overlay.classList.contains('open')) render(); } });
 
   function render() {
     var t = T[lang];
@@ -727,6 +1022,8 @@
 })();
 </script>
 <script>
+  window.addEventListener('cn-lang', function (e) { setL(e.detail); });
+  document.addEventListener('DOMContentLoaded', function () { setL(CNLang.get()); });
   function setL(l) { document.getElementById('en').style.display = l === 'en' ? '' : 'none'; document.getElementById('vi').style.display = l === 'vi' ? '' : 'none'; document.getElementById('bEn').className = l === 'en' ? 'on' : ''; document.getElementById('bVi').className = l === 'vi' ? 'on' : ''; document.documentElement.lang = l; }
   (async function () {
     var T = { en: { signed: 'You are signed in as ', open: 'DELETE MY ACCOUNT...', out: 'Sign in first, then come back to this page to delete your account.', go: 'SIGN IN' },
