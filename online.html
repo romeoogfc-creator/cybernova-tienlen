@@ -21,6 +21,13 @@
 
   // ---------------------------------------------------------------- exact texts: [english, vietnamese]
   var PAIRS = [
+    ['Open in Chrome to add CyberNova to your home screen, so you can play any time.', 'Mở bằng Chrome để thêm CyberNova ra màn hình chính, để bạn chơi bất cứ lúc nào.'],
+    ['To add CyberNova to your home screen: tap the menu and choose "Open in Safari", then Share, then "Add to Home Screen".', 'Để thêm CyberNova ra màn hình chính: bấm menu, chọn "Mở bằng Safari", rồi bấm Chia sẻ, chọn "Thêm vào MH chính".'],
+    ['Add CyberNova to your home screen and play any time.', 'Thêm CyberNova ra màn hình chính để chơi bất cứ lúc nào.'],
+    ['Add CyberNova to your home screen: tap the Share button, then "Add to Home Screen".', 'Thêm CyberNova ra màn hình chính: bấm nút Chia sẻ, rồi chọn "Thêm vào MH chính".'],
+    ['OPEN IN CHROME', 'MỞ BẰNG CHROME'], ['ADD', 'THÊM'], ['COPY LINK', 'SAO CHÉP LINK'], ['LINK COPIED', 'ĐÃ SAO CHÉP'], ['📲 ADD TO HOME SCREEN', '📲 THÊM RA MÀN HÌNH CHÍNH'], ['ADD TO HOME SCREEN', 'THÊM RA MÀN HÌNH CHÍNH'],
+    ['Open the browser menu (⋮) and choose "Add to Home screen" or "Install app".', 'Mở menu trình duyệt (⋮) và chọn "Thêm vào màn hình chính" hoặc "Cài đặt ứng dụng".'],
+    ['On your phone, open this page in Safari or Chrome, then use the browser menu and choose "Add to Home Screen".', 'Trên điện thoại, mở trang này bằng Safari hoặc Chrome, rồi dùng menu trình duyệt và chọn "Thêm vào màn hình chính".'],
     ['AVATAR SHOP', 'CỬA HÀNG AVATAR'], ['Free pictures to start. Premium pictures are unlocked with gems.', 'Có sẵn vài ảnh miễn phí. Ảnh cao cấp được mở khóa bằng kim cương.'],
     ['Free picture', 'Ảnh miễn phí'], ['Premium picture', 'Ảnh cao cấp'], ['Exclusive picture', 'Ảnh độc quyền'], ['Rare premium picture', 'Ảnh cao cấp hiếm'], ['IN USE', 'ĐANG DÙNG'], ['USE THIS PICTURE', 'DÙNG ẢNH NÀY'],
     ['GET GEMS: COMING SOON', 'MUA KIM CƯƠNG: SẮP RA MẮT'], ['FREE', 'MIỄN PHÍ'], ['PREMIUM', 'CAO CẤP'],
@@ -1031,7 +1038,8 @@
       grid.appendChild(im);
     })(gi);
     box.appendChild(grid);
-    var shopBtn = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, '💎 AVATAR SHOP: MORE PICTURES'); shopBtn.onclick = function () { CN.closeProfile(); CN.openShop(); }; box.appendChild(shopBtn);
+    var addBtn = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, '📲 ADD TO HOME SCREEN'); addBtn.onclick = function () { CN.closeProfile(); CN.installNow(); };
+    var shopBtn = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-top:8px' }, '💎 AVATAR SHOP: MORE PICTURES'); shopBtn.onclick = function () { CN.closeProfile(); CN.openShop(); }; box.appendChild(shopBtn); box.appendChild(addBtn);
     box.appendChild(el('label', { 'for': 'cnp-name' }, 'Display name (up to 16 characters)'));
     var nm = el('input', { type: 'text', id: 'cnp-name', maxlength: '16', autocomplete: 'off' }); nm.value = a.name; box.appendChild(nm);
     var m1 = el('div'); box.appendChild(m1);
@@ -1267,6 +1275,50 @@
     b.appendChild(el('div', { 'class': 'cnp-note', style: 'text-align:center' }, 'Only online tables count, because the server works out those results. Single-player hands are not on the board.'));
     closeBtn(b);
   };
+
+  // ---------------------------------------------------------------- "add to home screen": a shortcut so people can come back and play any time
+  var deferredInstall = null, installBar = null, UA = navigator.userAgent || '';
+  var IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var IS_ANDROID = /Android/i.test(UA);
+  var IN_APP = /FBAN|FBAV|FB_IAB|Messenger|Zalo|Instagram|Line\/|Snapchat|TikTok|MicroMessenger|KAKAOTALK/i.test(UA);      // the browser inside Messenger, Zalo, Facebook...
+  function isStandalone() { try { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; } catch (e) { return false; } }
+  function installDismissed() { try { var t = +localStorage.getItem('cn_install_hide') || 0; return Date.now() - t < 5 * 86400000; } catch (e) { return false; } }
+  function chromeIntent() { return 'intent://' + location.host + location.pathname + location.search + '#Intent;scheme=https;package=com.android.chrome;end'; }
+  function copyLink(btn) {
+    var url = location.href.split('#')[0], done = function () { btn.textContent = 'LINK COPIED'; };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(url).then(done, done); return; } } catch (e) {}
+    try { var ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch (e) {}
+    done();
+  }
+  function hideInstall(remember) { if (installBar) { installBar.remove(); installBar = null; } if (remember) { try { localStorage.setItem('cn_install_hide', String(Date.now())); } catch (e) {} } }
+  // what to say and which button to show for this phone
+  function installPlan() {
+    if (IN_APP) return IS_ANDROID ? { text: 'Open in Chrome to add CyberNova to your home screen, so you can play any time.', btn: 'OPEN IN CHROME', act: function () { location.href = chromeIntent(); }, copy: true }
+                                  : { text: 'To add CyberNova to your home screen: tap the menu and choose "Open in Safari", then Share, then "Add to Home Screen".', copy: true };
+    if (deferredInstall) return { text: 'Add CyberNova to your home screen and play any time.', btn: 'ADD', act: function () { var d = deferredInstall; deferredInstall = null; d.prompt(); d.userChoice && d.userChoice.then(function () { hideInstall(false); }); } };
+    if (IS_IOS) return { text: 'Add CyberNova to your home screen: tap the Share button, then "Add to Home Screen".' };
+    return null;
+  }
+  function showInstall(force) {
+    if (isStandalone() || location.protocol === 'file:' || (!force && (installDismissed() || !(IS_IOS || IS_ANDROID)))) return;
+    var plan = installPlan(); if (!plan) return;
+    hideInstall(false);
+    installBar = el('div', { style: 'position:fixed;left:8px;right:8px;bottom:8px;z-index:100010;background:#11141c;border:2px solid #ffd700;border-radius:14px;padding:10px 12px;color:#e8eefc;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;box-shadow:0 0 25px rgba(0,0,0,.6);display:flex;gap:10px;align-items:center' });
+    installBar.appendChild(el('img', { src: 'icon-192.png', alt: '', style: 'width:40px;height:40px;border-radius:10px;flex:0 0 auto' }));
+    var mid = el('div', { style: 'flex:1;min-width:0;font-size:12px;font-weight:700;line-height:1.35' }, plan.text); installBar.appendChild(mid);
+    var col = el('div', { style: 'display:flex;flex-direction:column;gap:5px;flex:0 0 auto' });
+    if (plan.btn) { var b = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'padding:8px 12px;min-height:34px' }, plan.btn); b.onclick = plan.act; col.appendChild(b); }
+    if (plan.copy) { var c = el('button', { type: 'button', 'class': 'cnp-btn', style: 'padding:8px 12px;min-height:34px' }, 'COPY LINK'); c.onclick = function () { copyLink(c); }; col.appendChild(c); }
+    installBar.appendChild(col);
+    var x = el('button', { type: 'button', 'aria-label': 'Close', style: 'background:none;border:0;color:#8a9bb8;font-size:20px;cursor:pointer;flex:0 0 auto;padding:0 4px' }, '✕'); x.onclick = function () { hideInstall(true); }; installBar.appendChild(x);
+    document.body.appendChild(installBar);
+  }
+  CN.installNow = function () { showInstall(true); if (!installBar) { var b = winBox('ADD TO HOME SCREEN', ''); b.appendChild(el('div', { style: 'font-size:13px;line-height:1.5;text-align:center' }, IS_ANDROID ? 'Open the browser menu (⋮) and choose "Add to Home screen" or "Install app".' : 'On your phone, open this page in Safari or Chrome, then use the browser menu and choose "Add to Home Screen".')); closeBtn(b); } };
+  try {
+    window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; setTimeout(function () { if (!installBar) showInstall(false); }, 3000); });
+    window.addEventListener('appinstalled', function () { deferredInstall = null; hideInstall(false); try { localStorage.setItem('cn_install_hide', String(Date.now() + 3650 * 86400000)); } catch (e) {} });
+    window.addEventListener('load', function () { setTimeout(function () { if (!installBar) showInstall(false); }, 6000); });
+  } catch (e) {}
   try { if ('serviceWorker' in navigator && location.protocol !== 'file:') window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); } catch (e) {}
 })();
   </script>

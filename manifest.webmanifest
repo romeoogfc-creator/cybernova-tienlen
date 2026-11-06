@@ -1,7 +1,7 @@
 {
   "name": "CyberNova Tiến Lên",
   "short_name": "CyberNova",
-  "description": "Tiến Lên Miền Nam card game. Free to play with bots or friends. Play money only, 18+.",
+  "description": "Tiến Lên Miền Nam card game. Free to play with bots or friends.",
   "start_url": "register.html",
   "scope": "./",
   "display": "standalone",
