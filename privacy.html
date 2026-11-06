@@ -19,7 +19,9 @@
 
   // ---------------------------------------------------------------- exact texts: [english, vietnamese]
   var PAIRS = [
-    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['OPEN IN CHROME', 'MỞ BẰNG CHROME'], ['OPEN IN SAFARI', 'MỞ BẰNG SAFARI'],
+    ['SHOW ME HOW', 'XEM CÁCH LÀM'],
+    ['To add the game to your Home Screen: tap the ••• menu at the top right, then "Open in browser" (or "Open in Safari").', 'Để thêm game ra Màn hình chính: bấm menu ••• ở góc trên bên phải, rồi chọn "Mở trong trình duyệt" (hoặc "Mở bằng Safari").'],
+    ['Then, in the browser:', 'Sau đó, trong trình duyệt:'], ['OPEN IN CHROME', 'MỞ BẰNG CHROME'], ['OPEN IN SAFARI', 'MỞ BẰNG SAFARI'],
     ['This app cannot add the game to your Home Screen. Tap OPEN IN CHROME below (or Safari), then follow the steps.', 'Ứng dụng này không thể thêm game ra Màn hình chính. Hãy bấm MỞ BẰNG CHROME bên dưới (hoặc Safari), rồi làm theo các bước.'],
     ['If nothing happened: tap the ••• menu at the top and choose "Open in Safari" or "Open in browser".', 'Nếu chưa mở được: bấm menu ••• ở phía trên và chọn "Mở bằng Safari" hoặc "Mở trong trình duyệt".'], ['Add the game to your Home Screen to play', 'Thêm game ra Màn hình chính để chơi'], ['It takes 10 seconds, and then you can open the game like any app.', 'Chỉ mất 10 giây, sau đó bạn mở game như một ứng dụng bình thường.'],
     
@@ -961,20 +963,17 @@
     wall.appendChild(el('div', { style: 'font-size:12px;color:#8a9bb8;margin-bottom:6px' }, 'It takes 10 seconds, and then you can open the game like any app.'));
     var box = el('div', { style: 'max-width:360px;margin:0 auto;text-align:left' });
     if (IN_APP) {
-      box.appendChild(el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:12px;padding:12px;font-size:13px;line-height:1.5;margin:10px 0;text-align:center' }, 'This app cannot add the game to your Home Screen. Tap OPEN IN CHROME below (or Safari), then follow the steps.'));
-      var hint = el('div', { style: 'display:none;font-size:12px;color:#ffd700;text-align:center;margin:6px 0' }, 'If nothing happened: tap the ••• menu at the top and choose "Open in Safari" or "Open in browser".');
-      var tryOpen = function (url) { try { window.location.href = url; } catch (e) {} setTimeout(function () { hint.style.display = 'block'; }, 1600); };
-      var rest = location.host + location.pathname + location.search.replace(/[?&]nowall=1/, '');
-      var bc = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin-bottom:8px;font-size:14px;min-height:48px' }, 'OPEN IN CHROME'); bc.onclick = function () { tryOpen('googlechromes://' + rest); }; box.appendChild(bc);
-      var bs = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-bottom:8px;min-height:44px' }, 'OPEN IN SAFARI'); bs.onclick = function () { tryOpen('x-safari-https://' + rest); }; box.appendChild(bs);
-      var cp = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-bottom:8px;min-height:44px' }, 'COPY LINK'); cp.onclick = function () { copyLink(cp); }; box.appendChild(cp);
-      box.appendChild(hint);
-      try { if (!sessionStorage.getItem('cn_auto_safari')) { sessionStorage.setItem('cn_auto_safari', '1'); setTimeout(function () { try { window.location.href = 'googlechromes://' + rest; } catch (e) {} setTimeout(function () { if (!document.hidden) { try { window.location.href = 'x-safari-https://' + rest; } catch (e) {} } }, 1300); }, 500); } } catch (e) {}    // try Chrome first on its own, then Safari if Chrome did not open
+      // Messenger, Zalo and Facebook do not allow a page to open another browser, so the only way out is their own ••• menu
+      box.appendChild(el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;margin:10px 0;text-align:center;font-weight:800' }, 'To add the game to your Home Screen: tap the ••• menu at the top right, then "Open in browser" (or "Open in Safari").'));
+      var cp = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin-bottom:8px;min-height:46px' }, 'COPY LINK'); cp.onclick = function () { copyLink(cp); }; box.appendChild(cp);
+      var pn = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-bottom:12px;min-height:46px' }, 'Play now without installing'); pn.onclick = function () { wall.remove(); if (up) up.remove(); }; box.appendChild(pn);
+      var up = el('div', { style: 'position:fixed;right:12px;top:0;font-size:30px;z-index:100040;animation:cnbounce 1s infinite;pointer-events:none;transform:rotate(0deg)' }, '☝️'); document.body.appendChild(up); setTimeout(function () { up.remove(); }, 12000);
+      box.appendChild(el('div', { style: 'font-size:12px;color:#8a9bb8;text-align:center;margin-bottom:4px' }, 'Then, in the browser:'));
     }
     iosStepsInto(box);
     box.appendChild(el('div', { style: 'background:#11141c;border:1px solid #2a3850;border-radius:12px;padding:10px;font-size:12px;line-height:1.5;margin-top:10px;text-align:center' }, 'After you add it, close the browser and tap the CyberNova icon on your home screen to play.'));
     wall.appendChild(box);
-    if (INSTALL_WALL_SKIPPABLE || IN_APP) { var sk = el('button', { type: 'button', 'class': 'cnp-btn', style: 'margin-top:14px' }, 'Play now without installing'); sk.onclick = function () { wall.remove(); }; wall.appendChild(sk); }
+    if (INSTALL_WALL_SKIPPABLE && !IN_APP) { var sk = el('button', { type: 'button', 'class': 'cnp-btn', style: 'margin-top:14px' }, 'Play now without installing'); sk.onclick = function () { wall.remove(); }; wall.appendChild(sk); }
     var lk = el('a', { href: 'privacy.html', style: 'display:block;margin-top:14px;font-size:11px;color:#8a9bb8;text-decoration:underline' }, 'Rules, Terms & Privacy'); wall.appendChild(lk);
     document.body.appendChild(wall);
     iosArrow();
