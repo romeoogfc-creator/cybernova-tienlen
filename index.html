@@ -21,7 +21,7 @@
 
   // ---------------------------------------------------------------- exact texts: [english, vietnamese]
   var PAIRS = [
-    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['It takes 10 seconds. Apple needs you to do it yourself.', 'Chỉ mất 10 giây. Apple yêu cầu bạn tự làm bước này.'],
+    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.', 'Bấm nút Chia sẻ (hình vuông có mũi tên) ở góc trên bên phải của Chrome, cạnh thanh địa chỉ.'], ['It takes 10 seconds. Apple needs you to do it yourself.', 'Chỉ mất 10 giây. Apple yêu cầu bạn tự làm bước này.'],
     ['Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', 'Bấm nút Chia sẻ (hình vuông có mũi tên). Trên iPhone nút này nằm ở dưới cùng của Safari; trên iPad nằm ở phía trên.'],
     ['Scroll down and tap "Add to Home Screen".', 'Kéo xuống và bấm "Thêm vào MH chính".'], ['Tap "Add" in the top corner. The CyberNova icon appears with your apps.', 'Bấm "Thêm" ở góc trên. Biểu tượng CyberNova sẽ hiện cùng các ứng dụng của bạn.'],
     ['Use Safari. If the page is open inside another app, first open it in Safari.', 'Dùng Safari. Nếu trang đang mở trong ứng dụng khác, hãy mở bằng Safari trước.'],
@@ -1223,6 +1223,7 @@
   var deferredInstall = null, installBar = null, UA = navigator.userAgent || '';
   var IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var IS_ANDROID = /Android/i.test(UA);
+  var IS_CHROME_IOS = /CriOS/.test(UA);
   var IN_APP = /FBAN|FBAV|FB_IAB|Messenger|Zalo|Instagram|Line\/|Snapchat|TikTok|MicroMessenger|KAKAOTALK/i.test(UA);      // the browser inside Messenger, Zalo, Facebook...
   function isStandalone() { try { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; } catch (e) { return false; } }
   function installDismissed() { try { var t = +localStorage.getItem('cn_install_hide') || 0; return Date.now() - t < 5 * 86400000; } catch (e) { return false; } }
@@ -1247,11 +1248,11 @@
   function iosHowTo() {                                                            // Apple does not let a page add itself, so we show the three taps
     hideInstall(false);
     var b = winBox('ADD TO HOME SCREEN', 'It takes 10 seconds. Apple needs you to do it yourself.');
-    var steps = [['1', 'Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', SHARE_SVG], ['2', 'Scroll down and tap "Add to Home Screen".', PLUS_SVG], ['3', 'Tap "Add" in the top corner. The CyberNova icon appears with your apps.', '']];
+    var steps = [['1', IS_CHROME_IOS ? 'Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.' : 'Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', SHARE_SVG], ['2', 'Scroll down and tap "Add to Home Screen".', PLUS_SVG], ['3', 'Tap "Add" in the top corner. The CyberNova icon appears with your apps.', '']];
     steps.forEach(function (s) { var r = el('div', { style: 'display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:13px;line-height:1.45' }); r.appendChild(el('div', { style: 'flex:0 0 26px;height:26px;border-radius:50%;background:#ffd700;color:#000;font-weight:900;text-align:center;line-height:26px' }, s[0])); var t = el('div', { style: 'flex:1' }); t.appendChild(el('div', null, s[1])); if (s[2]) { var ic = el('div', { style: 'margin-top:4px' }); ic.innerHTML = s[2]; t.appendChild(ic); } r.appendChild(t); b.appendChild(r); });
     b.appendChild(el('div', { style: 'font-size:11px;color:#8a9bb8;text-align:center;margin-top:4px' }, 'Use Safari. If the page is open inside another app, first open it in Safari.'));
     closeBtn(b);
-    if (!/iPad/.test(UA)) { var ar = el('div', { style: 'position:fixed;left:0;right:0;bottom:2px;text-align:center;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' }, '👇'); document.body.appendChild(ar); setTimeout(function () { ar.remove(); }, 9000); }
+    if (!/iPad/.test(UA)) { var ar = el('div', { style: IS_CHROME_IOS ? 'position:fixed;right:10px;top:2px;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' : 'position:fixed;left:0;right:0;bottom:2px;text-align:center;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' }, IS_CHROME_IOS ? '☝️' : '👇'); document.body.appendChild(ar); setTimeout(function () { ar.remove(); }, 9000); }
   }
   function showInstall(force) {
     if (isStandalone() || location.protocol === 'file:' || (!force && (installDismissed() || !(IS_IOS || IS_ANDROID)))) return;
@@ -1271,7 +1272,7 @@
   try {
     window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; setTimeout(function () { if (!installBar) showInstall(false); }, 3000); });
     window.addEventListener('appinstalled', function () { deferredInstall = null; hideInstall(false); try { localStorage.setItem('cn_install_hide', String(Date.now() + 3650 * 86400000)); } catch (e) {} });
-    window.addEventListener('load', function () { setTimeout(function () { if (!installBar) showInstall(false); }, 6000); });
+    window.addEventListener('load', function () { setTimeout(function () { if (!installBar) showInstall(false); }, 2500); });
   } catch (e) {}
   try { if ('serviceWorker' in navigator && location.protocol !== 'file:') window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); } catch (e) {}
 })();
@@ -1319,6 +1320,7 @@
       ['Your turn', 'Tap your cards to select them, then PLAY. When you lead, play any combination. When someone else led, play the same type and the same number of cards, but higher. If you cannot or do not want to, press PASS. When everybody else passes, you lead again. XẾP BÀI sorts your hand.'],
       ['Combinations', 'Single card · Pair · Triple (three of a kind) · Four of a kind · Straight (3 or more cards in a row, never including a 2, for example 5-6-7) · Three pairs in a row (for example 5-5 6-6 7-7) · Four pairs in a row. A straight must match the length of the straight on the table.'],
       ['Chopping (chặt)', 'A single 2 can be chopped by three pairs in a row, a four of a kind, or four pairs in a row. Three pairs in a row and a four of a kind can only chop a single 2. A pair of 2s can only be chopped by four pairs in a row. Four pairs in a row also beat any four of a kind. On your own turn, select the cards and press CHẶT / CHOP. Only four pairs in a row can chop out of turn, at any moment; three pairs in a row and a four of a kind must wait for your turn (you are not skipped if you hold one: the game waits for you, and if you pass, your chance is over). The player who is chopped pays you: a black 2 is worth 4 stakes, a red 2 is worth 8, a pair of 2s is worth 12. Chopping a chop is worth 6, and if the optional house rule "Four pairs on a chop: pays double" is switched on, four pairs in a row that chop a chop make the first chopper pay double what he won.'],
+      ['Add to home screen', 'Android: tap ADD when the banner appears, or open the browser menu and choose "Install app". iPhone: open the game in Safari, tap the Share button, then "Add to Home Screen". You can also use the Add to Home Screen button in the Profile window or the menu.'],
       ['Cóng', 'If somebody goes out first and you never played a single card, you are "cóng" (locked out). You pay 2 stakes plus extra for any 2s and four of a kinds still in your hand.'],
       ['Thối', 'The player who finishes last pays the winner for the 2s, four of a kinds and runs of pairs still in their hand. This is a house rule you can turn off.'],
       ['Instant win (tới trắng)', 'If your dealt hand has four 2s, six pairs, or a straight from 3 to A (the dragon), you win at once and every other player pays 4 stakes. Five pairs in a row and four 3s also count when those house rules are on.'],
@@ -1334,6 +1336,7 @@
       ['Lượt của bạn', 'Chạm vào bài để chọn rồi bấm PLAY. Khi bạn đi đầu vòng, đánh tổ hợp tùy ý. Khi người khác đã đánh, bạn phải đánh cùng loại, cùng số lá nhưng lớn hơn. Nếu không đánh được hoặc không muốn, bấm PASS (bỏ lượt). Khi mọi người đều bỏ lượt, bạn đánh tiếp. XẾP BÀI để sắp xếp bài.'],
       ['Các tổ hợp', 'Lá lẻ · Đôi · Sám (ba lá cùng số) · Tứ quý · Sảnh (từ 3 lá liên tiếp, không có 2, ví dụ 5-6-7) · Ba đôi thông (ví dụ 5-5 6-6 7-7) · Bốn đôi thông. Sảnh phải có cùng độ dài với sảnh trên bàn.'],
       ['Chặt', 'Một con heo bị chặt bởi ba đôi thông, tứ quý hoặc bốn đôi thông. Ba đôi thông và tứ quý chỉ chặt được một con heo. Đôi heo chỉ bị chặt bởi bốn đôi thông. Bốn đôi thông cũng chặt được mọi tứ quý. Đến lượt bạn, chọn bài rồi bấm CHẶT / CHOP. Chỉ bốn đôi thông mới chặt được bất cứ lúc nào (chưa đến lượt); ba đôi thông và tứ quý phải chờ đến lượt bạn (nếu bạn đang có bài chặt thì không bị bỏ qua, game sẽ chờ bạn; nếu bạn bỏ lượt thì mất cơ hội). Người bị chặt trả cho bạn: heo đen 4 cược, heo đỏ 8 cược, đôi heo 12 cược. Chặt chồng được 6 cược, và nếu bật luật phụ \"Bốn đôi chặt chồng: trả gấp đôi\" thì bốn đôi thông chặt chồng sẽ bắt người chặt trước trả gấp đôi số tiền đã ăn.'],
+      ['Thêm ra màn hình chính', 'Android: bấm THÊM khi thanh thông báo hiện ra, hoặc mở menu trình duyệt và chọn "Cài đặt ứng dụng". iPhone: mở game bằng Safari, bấm nút Chia sẻ, rồi chọn "Thêm vào MH chính". Bạn cũng có thể dùng nút Thêm ra màn hình chính trong cửa sổ Hồ sơ hoặc trong menu.'],
       ['Cóng', 'Nếu có người hết bài trước mà bạn chưa đánh lá nào, bạn bị cóng. Bạn trả 2 cược cộng thêm tiền cho heo và tứ quý còn trên tay.'],
       ['Thối', 'Người về bét trả cho người thắng tiền thối heo, tứ quý và đôi thông còn trên tay. Đây là luật nhà, có thể tắt.'],
       ['Tới trắng', 'Nếu bài chia có tứ quý heo, sáu đôi hoặc sảnh rồng (từ 3 đến A), bạn thắng ngay và mỗi người khác trả 4 cược. Năm đôi thông và tứ quý 3 cũng tính khi luật nhà này được bật.'],
@@ -1538,6 +1541,7 @@
           <button class="btn-hdr" id="btn-rules" onclick="openRules()">⚙ HOUSE RULES</button>
           <button class="btn-hdr theme-btn" id="btn-theme" onclick="toggleTheme()">RED DAMASK</button>
           <button class="btn-hdr" onclick="openProfileMenu()">👤 PROFILE</button>
+          <button class="btn-hdr" onclick="CN.installNow()">📲 ADD TO HOME SCREEN</button>
           <button class="btn-hdr" data-lang-btn onclick="CNLang.toggle()">🌐 EN</button>
           <button class="btn-hdr" onclick="openFreeChipsMenu()">🎁 FREE CHIPS</button>
           <button class="btn-hdr" onclick="openMissionsMenu()">📋 MISSIONS</button>
