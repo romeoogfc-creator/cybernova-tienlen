@@ -21,7 +21,10 @@
 
   // ---------------------------------------------------------------- exact texts: [english, vietnamese]
   var PAIRS = [
-    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.', 'Bấm nút Chia sẻ (hình vuông có mũi tên) ở góc trên bên phải của Chrome, cạnh thanh địa chỉ.'], ['It takes 10 seconds. Apple needs you to do it yourself.', 'Chỉ mất 10 giây. Apple yêu cầu bạn tự làm bước này.'],
+    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['Add the game to your Home Screen to play', 'Thêm game ra Màn hình chính để chơi'], ['It takes 10 seconds, and then you can open the game like any app.', 'Chỉ mất 10 giây, sau đó bạn mở game như một ứng dụng bình thường.'],
+    ['First open this page in Safari: tap the menu (… or ⋯ or Share) in this app and choose "Open in Safari". Then follow the steps below.', 'Trước tiên hãy mở trang này bằng Safari: bấm menu (… hoặc ⋯ hoặc Chia sẻ) trong ứng dụng này và chọn "Mở bằng Safari". Sau đó làm theo các bước bên dưới.'],
+    ['After you add it, close Safari and tap the CyberNova icon on your home screen to play.', 'Sau khi thêm xong, hãy đóng Safari và bấm biểu tượng CyberNova trên màn hình chính để chơi.'],
+    ['Play now without installing', 'Chơi ngay không cần cài'], ['Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.', 'Bấm nút Chia sẻ (hình vuông có mũi tên) ở góc trên bên phải của Chrome, cạnh thanh địa chỉ.'], ['It takes 10 seconds. Apple needs you to do it yourself.', 'Chỉ mất 10 giây. Apple yêu cầu bạn tự làm bước này.'],
     ['Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', 'Bấm nút Chia sẻ (hình vuông có mũi tên). Trên iPhone nút này nằm ở dưới cùng của Safari; trên iPad nằm ở phía trên.'],
     ['Scroll down and tap "Add to Home Screen".', 'Kéo xuống và bấm "Thêm vào MH chính".'], ['Tap "Add" in the top corner. The CyberNova icon appears with your apps.', 'Bấm "Thêm" ở góc trên. Biểu tượng CyberNova sẽ hiện cùng các ứng dụng của bạn.'],
     ['Use Safari. If the page is open inside another app, first open it in Safari.', 'Dùng Safari. Nếu trang đang mở trong ứng dụng khác, hãy mở bằng Safari trước.'],
@@ -1249,15 +1252,54 @@
   var MOCK1 = "<svg viewBox='0 0 300 70' width='100%' style='max-width:300px;display:block;margin-top:6px'><rect x='0' y='0' width='300' height='70' rx='12' fill='#1c1c1e'/><rect x='12' y='8' width='276' height='26' rx='13' fill='#2c2c2e'/><text x='150' y='26' font-size='11' fill='#9aa0a6' text-anchor='middle'>romeoogfc-creator.github.io</text><g fill='none' stroke='#8e8e93' stroke-width='2' stroke-linecap='round'><path d='M34 52l-7 6 7 6' transform='translate(0,-6)'/><path d='M82 46l7 6-7 6'/><rect x='258' y='46' width='14' height='14' rx='2'/></g><g stroke='#0a84ff' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M150 58V44M145 49l5-5 5 5'/><path d='M144 52h-3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-3'/></g><circle cx='150' cy='54' r='17' fill='none' stroke='#ff3b30' stroke-width='3'><animate attributeName='r' values='15;20;15' dur='1.2s' repeatCount='indefinite'/></circle></svg>";
   var MOCK2 = "<svg viewBox='0 0 300 120' width='100%' style='max-width:300px;display:block;margin-top:6px'><rect x='0' y='0' width='300' height='120' rx='12' fill='#1c1c1e'/><rect x='12' y='10' width='276' height='28' rx='8' fill='#2c2c2e'/><text x='24' y='29' font-size='12' fill='#fff'>Copy</text><rect x='12' y='44' width='276' height='28' rx='8' fill='#2c2c2e' stroke='#ff3b30' stroke-width='3'><animate attributeName='stroke-opacity' values='1;.2;1' dur='1.2s' repeatCount='indefinite'/></rect><text x='24' y='63' font-size='12' fill='#fff' font-weight='bold'>Add to Home Screen</text><rect x='254' y='50' width='16' height='16' rx='4' fill='none' stroke='#fff' stroke-width='1.6'/><path d='M262 54v8M258 58h8' stroke='#fff' stroke-width='1.6'/><rect x='12' y='78' width='276' height='28' rx='8' fill='#2c2c2e'/><text x='24' y='97' font-size='12' fill='#9aa0a6'>Add Bookmark</text></svg>";
   var MOCK3 = "<svg viewBox='0 0 300 70' width='100%' style='max-width:300px;display:block;margin-top:6px'><rect x='0' y='0' width='300' height='70' rx='12' fill='#1c1c1e'/><text x='20' y='40' font-size='13' fill='#0a84ff'>Cancel</text><text x='150' y='40' font-size='13' fill='#fff' text-anchor='middle' font-weight='bold'>Add to Home Screen</text><rect x='236' y='22' width='54' height='28' rx='14' fill='none' stroke='#ff3b30' stroke-width='3'><animate attributeName='stroke-opacity' values='1;.2;1' dur='1.2s' repeatCount='indefinite'/></rect><text x='263' y='41' font-size='14' fill='#0a84ff' text-anchor='middle' font-weight='bold'>Add</text></svg>";
+  function iosStepsInto(b) {
+    var steps = [['1', IS_CHROME_IOS ? 'Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.' : 'Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', MOCK1], ['2', 'Scroll down and tap "Add to Home Screen".', MOCK2], ['3', 'Tap "Add" in the top corner. The CyberNova icon appears with your apps.', MOCK3]];
+    steps.forEach(function (s) { var r = el('div', { style: 'display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:13px;line-height:1.45' }); r.appendChild(el('div', { style: 'flex:0 0 26px;height:26px;border-radius:50%;background:#ffd700;color:#000;font-weight:900;text-align:center;line-height:26px' }, s[0])); var t = el('div', { style: 'flex:1' }); t.appendChild(el('div', null, s[1])); if (s[2]) { var ic = el('div', { style: 'margin-top:4px' }); ic.innerHTML = s[2]; t.appendChild(ic); } r.appendChild(t); b.appendChild(r); });
+  }
+  function iosArrow() {
+    if (!/iPad/.test(UA)) { var ar = el('div', { style: IS_CHROME_IOS ? 'position:fixed;right:10px;top:2px;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' : 'position:fixed;left:0;right:0;bottom:2px;text-align:center;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' }, IS_CHROME_IOS ? '☝️' : '👇'); document.body.appendChild(ar); setTimeout(function () { ar.remove(); }, 9000); }
+  }
   function iosHowTo() {                                                            // Apple does not let a page add itself, so we show the three taps
     hideInstall(false);
     var b = winBox('ADD TO HOME SCREEN', 'It takes 10 seconds. Apple needs you to do it yourself.');
-    var steps = [['1', IS_CHROME_IOS ? 'Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.' : 'Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', MOCK1], ['2', 'Scroll down and tap "Add to Home Screen".', MOCK2], ['3', 'Tap "Add" in the top corner. The CyberNova icon appears with your apps.', MOCK3]];
-    steps.forEach(function (s) { var r = el('div', { style: 'display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:13px;line-height:1.45' }); r.appendChild(el('div', { style: 'flex:0 0 26px;height:26px;border-radius:50%;background:#ffd700;color:#000;font-weight:900;text-align:center;line-height:26px' }, s[0])); var t = el('div', { style: 'flex:1' }); t.appendChild(el('div', null, s[1])); if (s[2]) { var ic = el('div', { style: 'margin-top:4px' }); ic.innerHTML = s[2]; t.appendChild(ic); } r.appendChild(t); b.appendChild(r); });
+    iosStepsInto(b);
     b.appendChild(el('div', { style: 'font-size:11px;color:#8a9bb8;text-align:center;margin-top:4px' }, 'Use Safari. If the page is open inside another app, first open it in Safari.'));
     closeBtn(b);
-    if (!/iPad/.test(UA)) { var ar = el('div', { style: IS_CHROME_IOS ? 'position:fixed;right:10px;top:2px;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' : 'position:fixed;left:0;right:0;bottom:2px;text-align:center;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' }, IS_CHROME_IOS ? '☝️' : '👇'); document.body.appendChild(ar); setTimeout(function () { ar.remove(); }, 9000); }
+    iosArrow();
   }
+  // On iPhone the game only opens from the home screen icon. In Safari, people first see this full-screen guide.
+  // To let people in without installing, change INSTALL_WALL_SKIPPABLE to true (a "Play now" link then appears).
+  var INSTALL_WALL_SKIPPABLE = false;
+  function needWall() {
+    try {
+      if (!IS_IOS || isStandalone() || location.protocol === 'file:') return false;
+      if (/privacy/.test(location.pathname)) return false;                                // the Terms and Privacy page always stays readable
+      if (/[?&]nowall=1/.test(location.search)) { localStorage.setItem('cn_nowall', '1'); }
+      if (localStorage.getItem('cn_nowall') === '1') return false;                        // a way around for testing and support
+      if (navigator.userAgent.indexOf('Safari') < 0 && !IN_APP && !IS_CHROME_IOS) return false;
+      return true;
+    } catch (e) { return false; }
+  }
+  function showWall() {
+    var wall = el('div', { id: 'cn-wall', style: 'position:fixed;inset:0;z-index:100030;background:#080b13;color:#e8eefc;overflow-y:auto;padding:18px 16px 28px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;text-align:center' });
+    wall.appendChild(el('img', { src: 'icon-192.png', alt: '', style: 'width:72px;height:72px;border-radius:18px;margin:6px auto 8px;display:block;box-shadow:0 0 25px rgba(255,215,0,.35)' }));
+    wall.appendChild(el('div', { style: 'font-size:20px;font-weight:900;color:#ffd700;letter-spacing:1px' }, 'CYBER NOVA'));
+    wall.appendChild(el('div', { style: 'font-size:16px;font-weight:800;margin:12px 0 4px' }, 'Add the game to your Home Screen to play'));
+    wall.appendChild(el('div', { style: 'font-size:12px;color:#8a9bb8;margin-bottom:6px' }, 'It takes 10 seconds, and then you can open the game like any app.'));
+    var box = el('div', { style: 'max-width:360px;margin:0 auto;text-align:left' });
+    if (IN_APP) {
+      box.appendChild(el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:12px;padding:12px;font-size:13px;line-height:1.5;margin:10px 0;text-align:center' }, 'First open this page in Safari: tap the menu (… or ⋯ or Share) in this app and choose "Open in Safari". Then follow the steps below.'));
+      var cp = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin-bottom:8px' }, 'COPY LINK'); cp.onclick = function () { copyLink(cp); }; box.appendChild(cp);
+    }
+    iosStepsInto(box);
+    box.appendChild(el('div', { style: 'background:#11141c;border:1px solid #2a3850;border-radius:12px;padding:10px;font-size:12px;line-height:1.5;margin-top:10px;text-align:center' }, 'After you add it, close Safari and tap the CyberNova icon on your home screen to play.'));
+    wall.appendChild(box);
+    if (INSTALL_WALL_SKIPPABLE) { var sk = el('button', { type: 'button', 'class': 'cnp-btn', style: 'margin-top:14px' }, 'Play now without installing'); sk.onclick = function () { wall.remove(); }; wall.appendChild(sk); }
+    var lk = el('a', { href: 'privacy.html', style: 'display:block;margin-top:14px;font-size:11px;color:#8a9bb8;text-decoration:underline' }, 'Rules, Terms & Privacy'); wall.appendChild(lk);
+    document.body.appendChild(wall);
+    iosArrow();
+  }
+  try { if (needWall()) { if (document.body) showWall(); else document.addEventListener('DOMContentLoaded', showWall); } } catch (e) {}
   function showInstall(force) {
     if (isStandalone() || location.protocol === 'file:' || (!force && (installDismissed() || !(IS_IOS || IS_ANDROID)))) return;
     var plan = installPlan(); if (!plan) return;
