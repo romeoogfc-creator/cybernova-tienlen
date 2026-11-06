@@ -1,6 +1,6 @@
 {
-  "name": "CyberNova Tiến Lên",
-  "short_name": "CyberNova",
+  "name": "Tiến Lên Nova",
+  "short_name": "Tiến Lên Nova",
   "description": "Tiến Lên Miền Nam card game. Free to play with bots or friends.",
   "start_url": "register.html",
   "scope": "./",
