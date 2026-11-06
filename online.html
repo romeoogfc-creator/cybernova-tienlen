@@ -25,8 +25,10 @@
 
   // ---------------------------------------------------------------- exact texts: [english, vietnamese]
   var PAIRS = [
-    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['Add the game to your Home Screen to play', 'Thêm game ra Màn hình chính để chơi'], ['It takes 10 seconds, and then you can open the game like any app.', 'Chỉ mất 10 giây, sau đó bạn mở game như một ứng dụng bình thường.'],
-    ['First open this page in Safari: tap the menu (… or ⋯ or Share) in this app and choose "Open in Safari". Then follow the steps below.', 'Trước tiên hãy mở trang này bằng Safari: bấm menu (… hoặc ⋯ hoặc Chia sẻ) trong ứng dụng này và chọn "Mở bằng Safari". Sau đó làm theo các bước bên dưới.'],
+    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['OPEN IN SAFARI', 'MỞ BẰNG SAFARI'],
+    ['This app cannot add the game to your Home Screen. Tap OPEN IN SAFARI below, then follow the steps.', 'Ứng dụng này không thể thêm game ra Màn hình chính. Hãy bấm MỞ BẰNG SAFARI bên dưới, rồi làm theo các bước.'],
+    ['If nothing happened: tap the ••• menu at the top and choose "Open in Safari" or "Open in browser".', 'Nếu chưa mở được: bấm menu ••• ở phía trên và chọn "Mở bằng Safari" hoặc "Mở trong trình duyệt".'], ['Add the game to your Home Screen to play', 'Thêm game ra Màn hình chính để chơi'], ['It takes 10 seconds, and then you can open the game like any app.', 'Chỉ mất 10 giây, sau đó bạn mở game như một ứng dụng bình thường.'],
+    
     ['After you add it, close Safari and tap the CyberNova icon on your home screen to play.', 'Sau khi thêm xong, hãy đóng Safari và bấm biểu tượng CyberNova trên màn hình chính để chơi.'],
     ['Play now without installing', 'Chơi ngay không cần cài'], ['Tap the Share button (the square with an arrow) at the top right of Chrome, next to the address.', 'Bấm nút Chia sẻ (hình vuông có mũi tên) ở góc trên bên phải của Chrome, cạnh thanh địa chỉ.'], ['It takes 10 seconds. Apple needs you to do it yourself.', 'Chỉ mất 10 giây. Apple yêu cầu bạn tự làm bước này.'],
     ['Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', 'Bấm nút Chia sẻ (hình vuông có mũi tên). Trên iPhone nút này nằm ở dưới cùng của Safari; trên iPad nằm ở phía trên.'],
@@ -1354,13 +1356,20 @@
     wall.appendChild(el('div', { style: 'font-size:12px;color:#8a9bb8;margin-bottom:6px' }, 'It takes 10 seconds, and then you can open the game like any app.'));
     var box = el('div', { style: 'max-width:360px;margin:0 auto;text-align:left' });
     if (IN_APP) {
-      box.appendChild(el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:12px;padding:12px;font-size:13px;line-height:1.5;margin:10px 0;text-align:center' }, 'First open this page in Safari: tap the menu (… or ⋯ or Share) in this app and choose "Open in Safari". Then follow the steps below.'));
-      var cp = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin-bottom:8px' }, 'COPY LINK'); cp.onclick = function () { copyLink(cp); }; box.appendChild(cp);
+      box.appendChild(el('div', { style: 'background:#11141c;border:2px solid #ffd700;border-radius:12px;padding:12px;font-size:13px;line-height:1.5;margin:10px 0;text-align:center' }, 'This app cannot add the game to your Home Screen. Tap OPEN IN SAFARI below, then follow the steps.'));
+      var hint = el('div', { style: 'display:none;font-size:12px;color:#ffd700;text-align:center;margin:6px 0' }, 'If nothing happened: tap the ••• menu at the top and choose "Open in Safari" or "Open in browser".');
+      var tryOpen = function (url) { try { window.location.href = url; } catch (e) {} setTimeout(function () { hint.style.display = 'block'; }, 1600); };
+      var rest = location.host + location.pathname + location.search.replace(/[?&]nowall=1/, '');
+      var bs = el('button', { type: 'button', 'class': 'cnp-btn gold', style: 'width:100%;margin-bottom:8px;font-size:14px;min-height:48px' }, 'OPEN IN SAFARI'); bs.onclick = function () { tryOpen('x-safari-https://' + rest); }; box.appendChild(bs);
+      var bc = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-bottom:8px;min-height:44px' }, 'OPEN IN CHROME'); bc.onclick = function () { tryOpen('googlechromes://' + rest); }; box.appendChild(bc);
+      var cp = el('button', { type: 'button', 'class': 'cnp-btn', style: 'width:100%;margin-bottom:8px;min-height:44px' }, 'COPY LINK'); cp.onclick = function () { copyLink(cp); }; box.appendChild(cp);
+      box.appendChild(hint);
+      try { if (!sessionStorage.getItem('cn_auto_safari')) { sessionStorage.setItem('cn_auto_safari', '1'); setTimeout(function () { tryOpen('x-safari-https://' + rest); }, 500); } } catch (e) {}    // try once on its own
     }
     iosStepsInto(box);
     box.appendChild(el('div', { style: 'background:#11141c;border:1px solid #2a3850;border-radius:12px;padding:10px;font-size:12px;line-height:1.5;margin-top:10px;text-align:center' }, 'After you add it, close Safari and tap the CyberNova icon on your home screen to play.'));
     wall.appendChild(box);
-    if (INSTALL_WALL_SKIPPABLE) { var sk = el('button', { type: 'button', 'class': 'cnp-btn', style: 'margin-top:14px' }, 'Play now without installing'); sk.onclick = function () { wall.remove(); }; wall.appendChild(sk); }
+    if (INSTALL_WALL_SKIPPABLE || IN_APP) { var sk = el('button', { type: 'button', 'class': 'cnp-btn', style: 'margin-top:14px' }, 'Play now without installing'); sk.onclick = function () { wall.remove(); }; wall.appendChild(sk); }
     var lk = el('a', { href: 'privacy.html', style: 'display:block;margin-top:14px;font-size:11px;color:#8a9bb8;text-decoration:underline' }, 'Rules, Terms & Privacy'); wall.appendChild(lk);
     document.body.appendChild(wall);
     iosArrow();
