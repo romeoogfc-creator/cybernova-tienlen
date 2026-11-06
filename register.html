@@ -15,6 +15,10 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0b0e17">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CyberNova">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1370786646765613" crossorigin="anonymous"></script>
   <script>
 /* CyberNova language switch (Vietnamese / English).
@@ -29,6 +33,10 @@
 
   // ---------------------------------------------------------------- exact texts: [english, vietnamese]
   var PAIRS = [
+    ['SHOW ME HOW', 'XEM CÁCH LÀM'], ['It takes 10 seconds. Apple needs you to do it yourself.', 'Chỉ mất 10 giây. Apple yêu cầu bạn tự làm bước này.'],
+    ['Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', 'Bấm nút Chia sẻ (hình vuông có mũi tên). Trên iPhone nút này nằm ở dưới cùng của Safari; trên iPad nằm ở phía trên.'],
+    ['Scroll down and tap "Add to Home Screen".', 'Kéo xuống và bấm "Thêm vào MH chính".'], ['Tap "Add" in the top corner. The CyberNova icon appears with your apps.', 'Bấm "Thêm" ở góc trên. Biểu tượng CyberNova sẽ hiện cùng các ứng dụng của bạn.'],
+    ['Use Safari. If the page is open inside another app, first open it in Safari.', 'Dùng Safari. Nếu trang đang mở trong ứng dụng khác, hãy mở bằng Safari trước.'],
     ['Open in Chrome to add CyberNova to your home screen, so you can play any time.', 'Mở bằng Chrome để thêm CyberNova ra màn hình chính, để bạn chơi bất cứ lúc nào.'],
     ['To add CyberNova to your home screen: tap the menu and choose "Open in Safari", then Share, then "Add to Home Screen".', 'Để thêm CyberNova ra màn hình chính: bấm menu, chọn "Mở bằng Safari", rồi bấm Chia sẻ, chọn "Thêm vào MH chính".'],
     ['Add CyberNova to your home screen and play any time.', 'Thêm CyberNova ra màn hình chính để chơi bất cứ lúc nào.'],
@@ -940,7 +948,8 @@
   CN.requireSignIn = async function () { await CN.init(); if (!CN.user()) { location.href = 'register.html'; return false; } return true; };
 
   // ------------------------------------------------------------------ the one Profile window
-  var css = '#cnp-overlay{position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100001;padding:10px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
+  var css = '@keyframes cnbounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}' +
+    '#cnp-overlay{position:fixed;inset:0;background:rgba(3,5,10,.9);display:none;align-items:center;justify-content:center;z-index:100001;padding:10px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}' +
     '#cnp-overlay.open{display:flex}#cnp-box{background:#11141c;border:2px solid #d4af37;border-radius:16px;width:100%;max-width:440px;max-height:92vh;max-height:92dvh;overflow-y:auto;padding:16px;color:#e8eefc;box-shadow:0 0 35px rgba(212,175,55,.35);user-select:text;-webkit-user-select:text}' +
     '#cnp-box h2{margin:0 0 4px;font-size:16px;font-weight:900;color:#ffd700;letter-spacing:1px}#cnp-box h3{margin:16px 0 6px;font-size:12px;font-weight:900;color:#ffd700;text-transform:uppercase}' +
     '.cnp-row{display:flex;align-items:center;gap:12px}.cnp-av{width:64px;height:64px;border-radius:50%;border:2px solid #d4af37;object-fit:cover;background:#1a233a;flex:0 0 auto}' +
@@ -1246,8 +1255,19 @@
     if (IN_APP) return IS_ANDROID ? { text: 'Open in Chrome to add CyberNova to your home screen, so you can play any time.', btn: 'OPEN IN CHROME', act: function () { location.href = chromeIntent(); }, copy: true }
                                   : { text: 'To add CyberNova to your home screen: tap the menu and choose "Open in Safari", then Share, then "Add to Home Screen".', copy: true };
     if (deferredInstall) return { text: 'Add CyberNova to your home screen and play any time.', btn: 'ADD', act: function () { var d = deferredInstall; deferredInstall = null; d.prompt(); d.userChoice && d.userChoice.then(function () { hideInstall(false); }); } };
-    if (IS_IOS) return { text: 'Add CyberNova to your home screen: tap the Share button, then "Add to Home Screen".' };
+    if (IS_IOS) return { text: 'Add CyberNova to your home screen: tap the Share button, then "Add to Home Screen".', btn: 'SHOW ME HOW', act: function () { iosHowTo(); } };
     return null;
+  }
+  var SHARE_SVG = "<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#0a84ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:middle'><path d='M12 15V3M8 7l4-4 4 4'/><path d='M6 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1'/></svg>";
+  var PLUS_SVG = "<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#e8eefc' stroke-width='2' stroke-linecap='round' style='vertical-align:middle'><rect x='3' y='3' width='18' height='18' rx='4'/><path d='M12 8v8M8 12h8'/></svg>";
+  function iosHowTo() {                                                            // Apple does not let a page add itself, so we show the three taps
+    hideInstall(false);
+    var b = winBox('ADD TO HOME SCREEN', 'It takes 10 seconds. Apple needs you to do it yourself.');
+    var steps = [['1', 'Tap the Share button (the square with an arrow). On iPhone it is at the bottom of Safari; on iPad it is at the top.', SHARE_SVG], ['2', 'Scroll down and tap "Add to Home Screen".', PLUS_SVG], ['3', 'Tap "Add" in the top corner. The CyberNova icon appears with your apps.', '']];
+    steps.forEach(function (s) { var r = el('div', { style: 'display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:13px;line-height:1.45' }); r.appendChild(el('div', { style: 'flex:0 0 26px;height:26px;border-radius:50%;background:#ffd700;color:#000;font-weight:900;text-align:center;line-height:26px' }, s[0])); var t = el('div', { style: 'flex:1' }); t.appendChild(el('div', null, s[1])); if (s[2]) { var ic = el('div', { style: 'margin-top:4px' }); ic.innerHTML = s[2]; t.appendChild(ic); } r.appendChild(t); b.appendChild(r); });
+    b.appendChild(el('div', { style: 'font-size:11px;color:#8a9bb8;text-align:center;margin-top:4px' }, 'Use Safari. If the page is open inside another app, first open it in Safari.'));
+    closeBtn(b);
+    if (!/iPad/.test(UA)) { var ar = el('div', { style: 'position:fixed;left:0;right:0;bottom:2px;text-align:center;font-size:30px;z-index:100020;animation:cnbounce 1s infinite;pointer-events:none' }, '👇'); document.body.appendChild(ar); setTimeout(function () { ar.remove(); }, 9000); }
   }
   function showInstall(force) {
     if (isStandalone() || location.protocol === 'file:' || (!force && (installDismissed() || !(IS_IOS || IS_ANDROID)))) return;
@@ -1263,7 +1283,7 @@
     var x = el('button', { type: 'button', 'aria-label': 'Close', style: 'background:none;border:0;color:#8a9bb8;font-size:20px;cursor:pointer;flex:0 0 auto;padding:0 4px' }, '✕'); x.onclick = function () { hideInstall(true); }; installBar.appendChild(x);
     document.body.appendChild(installBar);
   }
-  CN.installNow = function () { showInstall(true); if (!installBar) { var b = winBox('ADD TO HOME SCREEN', ''); b.appendChild(el('div', { style: 'font-size:13px;line-height:1.5;text-align:center' }, IS_ANDROID ? 'Open the browser menu (⋮) and choose "Add to Home screen" or "Install app".' : 'On your phone, open this page in Safari or Chrome, then use the browser menu and choose "Add to Home Screen".')); closeBtn(b); } };
+  CN.installNow = function () { if (IS_IOS && !IN_APP) { iosHowTo(); return; } showInstall(true); if (!installBar) { var b = winBox('ADD TO HOME SCREEN', ''); b.appendChild(el('div', { style: 'font-size:13px;line-height:1.5;text-align:center' }, IS_ANDROID ? 'Open the browser menu (⋮) and choose "Add to Home screen" or "Install app".' : 'On your phone, open this page in Safari or Chrome, then use the browser menu and choose "Add to Home Screen".')); closeBtn(b); } };
   try {
     window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; setTimeout(function () { if (!installBar) showInstall(false); }, 3000); });
     window.addEventListener('appinstalled', function () { deferredInstall = null; hideInstall(false); try { localStorage.setItem('cn_install_hide', String(Date.now() + 3650 * 86400000)); } catch (e) {} });
