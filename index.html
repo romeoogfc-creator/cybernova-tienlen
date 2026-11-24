@@ -3620,5 +3620,117 @@
       deal.disabled = false; say('CLICK DEAL TO START MATCH');
     };
   </script>
+
+<script>
+/* ===== Director mode (index.html?rec=1): an event diary for gameplay videos. Does nothing without ?rec=1. ===== */
+(function () {
+  if (!/[?&]rec=1\b/.test(location.search)) return;
+  var KEY = 'cybernova_rec_log';
+  var log = { version: 1, page: 'single', created: new Date().toISOString(), sync: null, events: [] };
+  var t0 = performance.now();                       // replaced by the flash moment
+  var synced = false;
+  function now() { return Math.round(performance.now() - t0) / 1000; }
+  function card(c) { return c.rankStr + c.suitStr; }
+  function cards(a) { return (a || []).map(card); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(log)); } catch (e) {} paint(); }
+  function add(ev) { ev.t = (ev.t != null) ? ev.t : now(); log.events.push(ev); save(); return ev; }
+  function who() { return players.map(function (p) { return { name: p.name, bot: !!p.isBot, cash: p.cash, left: p.hand.length }; }); }
+
+  // ---- the small control panel (hidden from the recording once the flash has happened) ----
+  var panel = document.createElement('div');
+  panel.id = 'rec-panel';
+  panel.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483000;background:rgba(10,4,8,.92);border:2px solid #ffd700;border-radius:12px;padding:10px 12px;font:600 14px system-ui,sans-serif;color:#fff;max-width:300px;box-shadow:0 6px 24px rgba(0,0,0,.6)';
+  panel.innerHTML = '<div style="color:#ffd700;margin-bottom:6px">🎬 CHẾ ĐỘ QUAY VIDEO</div>' +
+    '<div id="rec-help" style="font-weight:400;font-size:12.5px;line-height:1.4;margin-bottom:8px">1. Bật phần mềm quay màn hình.<br>2. Bấm <b>BẮT ĐẦU</b> (màn hình nháy tím nửa giây).<br>3. Chơi bình thường. Xong thì bấm phím <b>F9</b> hoặc chấm đỏ góc dưới để tải nhật ký.</div>' +
+    '<button id="rec-go" style="background:#ffd700;color:#1a0408;border:0;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;width:100%">⏺ BẮT ĐẦU</button>' +
+    '<div id="rec-count" style="font-weight:400;font-size:12px;margin-top:6px;opacity:.8"></div>';
+  var dot = document.createElement('div');           // after the flash only a tiny dot stays (click it to download)
+  dot.title = 'Tải nhật ký quay video (F9)';
+  dot.style.cssText = 'position:fixed;left:4px;bottom:4px;width:9px;height:9px;border-radius:50%;background:#e0202e;opacity:.55;z-index:2147483000;cursor:pointer;display:none';
+  function paint() { var c = document.getElementById('rec-count'); if (c) c.textContent = log.events.length + ' sự kiện đã ghi' + (synced ? '' : ' (chưa đồng bộ)'); }
+  function mount() { document.body.appendChild(panel); document.body.appendChild(dot); paint();
+    document.getElementById('rec-go').onclick = flash; dot.onclick = download; }
+  if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+
+  function flash() {
+    var f = document.createElement('div');
+    f.style.cssText = 'position:fixed;inset:0;background:#ff00ff;z-index:2147483647';
+    panel.style.display = 'none';
+    document.body.appendChild(f);
+    requestAnimationFrame(function () {               // the clock starts on the first painted magenta frame
+      t0 = performance.now(); synced = true;
+      log.events = [];                                  // the diary starts here
+      log.sync = { kind: 'magenta-flash', seconds: 0.6, wall: Date.now(), wallISO: new Date().toISOString() };
+      add({ e: 'sync', players: who(), stake: currentStake });
+      setTimeout(function () { f.remove(); dot.style.display = 'block'; }, 600);
+    });
+  }
+  function download() {
+    var name = 'tienlen_rec_' + new Date(log.sync ? log.sync.wall : Date.now()).toISOString().replace(/[-:]/g, '').replace('T', '_').slice(0, 15) + '.events.json';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(log, null, 1)], { type: 'application/json' }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  }
+  window.CNRec = { log: log, download: download, flash: flash };
+  document.addEventListener('keydown', function (e) { if (e.key === 'F9') { e.preventDefault(); download(); } });
+
+  // ---- hooks: each wraps a game function and writes down what really happened ----
+  function wrap(name, fn) { var orig = window[name]; if (typeof orig !== 'function') return; window[name] = fn(orig); }
+
+  wrap('_startNewGame', function (orig) { return function () {
+    var at = now(), i0 = log.events.length, before = gameActive;
+    var r = orig.apply(this, arguments);
+    if (!before && (gameActive || instantWinThisGame)) {
+      log.events.splice(i0, 0, { t: at, e: 'deal', stake: currentStake, starter: currentTurn, instant: !!instantWinThisGame,
+        players: who(), hands: players.map(function (p) { return cards(p.hand); }) });
+      save();
+    }
+    return r;
+  }; });
+
+  wrap('executePlay', function (orig) { return function (i, played, combo) {
+    var at = now(), i0 = log.events.length, prev = lastCombo;
+    var rankBefore = players.map(function (p) { return p.rank; }), congBefore = players.map(function (p) { return p.isCongLocked; });
+    var r = orig.apply(this, arguments);
+    var ev = { t: at, e: 'play', seat: i, cards: cards(played), type: combo.type, left: players[i].hand.length,
+      two: !!combo.isTwo, red2: !!combo.isSingleRedTwo, pair2: !!combo.isPairTwos,
+      over: prev ? { seat: prev.owner, type: prev.type } : null };
+    if (combo.chopLevel && (!prev || combo.chopLevel > (prev.chopLevel || 0))) {
+      ev.chop = { level: combo.chopLevel, victim: prev ? prev.owner : null, amount: (combo.chopInfo && combo.chopInfo.victim === (prev && prev.owner)) ? combo.chopInfo.amount : 0 };
+    }
+    var extra = [];
+    players.forEach(function (p, k) {
+      if (!rankBefore[k] && p.rank && !p.isCongLocked) extra.push({ t: at, e: 'finish', seat: k, rank: p.rank, left: p.hand.length });
+      if (!congBefore[k] && p.isCongLocked) extra.push({ t: at, e: 'cong', seat: k, fine: p.congFinePaid || 0 });
+    });
+    log.events.splice.apply(log.events, [i0, 0, ev].concat(extra));
+    save();
+    return r;
+  }; });
+
+  wrap('executePass', function (orig) { return function (i) {
+    var was = players[i] && players[i].passed, at = now();
+    var r = orig.apply(this, arguments);
+    if (players[i] && players[i].passed && !was) add({ t: at, e: 'pass', seat: i });
+    return r;
+  }; });
+
+  wrap('resetRoundForNewTrick', function (orig) { return function () {
+    var had = !!lastCombo, r = orig.apply(this, arguments);
+    if (had && gameActive) add({ e: 'newTrick' });
+    return r;
+  }; });
+
+  wrap('endGame', function (orig) { return function () {
+    var at = now(), r = orig.apply(this, arguments);
+    add({ t: at, e: 'results', instant: !!instantWinThisGame, players: players.map(function (p) {
+      return { name: p.name, rank: p.rank, cong: !!p.isCongLocked, net: p.netPayout, cash: p.cash, left: cards(p.hand),
+        why: (p.moneyLog || []).map(function (m) { return { amt: m.amt, why: m.why }; }) }; }) });
+    return r;
+  }; });
+
+  wrap('closeResultModal', function (orig) { return function () { add({ e: 'closeResults' }); return orig.apply(this, arguments); }; });
+})();
+</script>
 </body>
 </html>
