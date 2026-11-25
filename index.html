@@ -3674,8 +3674,11 @@
   var panel = document.createElement('div');
   panel.id = 'rec-panel'; panel.setAttribute('data-no-i18n', '1'); panel.setAttribute('translate', 'no');
   panel.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483000;background:rgba(10,4,8,.94);border:2px solid #ffd700;border-radius:12px;padding:10px 12px;font:600 14px system-ui,sans-serif;color:#fff;width:310px;box-shadow:0 6px 24px rgba(0,0,0,.6)';
+  function isEnglish() { try { return (localStorage.getItem('cybernova_lang') || localStorage.getItem('cybernova_help_lang')) === 'en'; } catch (e) { return false; } }
   var B = 'border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;';
   panel.innerHTML = '<div style="color:#ffd700;margin-bottom:6px">🎬 CHẾ ĐỘ QUAY VIDEO</div>' +
+    (isEnglish() ? '<button id="rec-vi" style="' + B + 'background:#c8102e;color:#fff;border:0;margin-bottom:6px">🇻🇳 CHUYỂN GIAO DIỆN SANG TIẾNG VIỆT</button>' +
+      '<div style="font-weight:400;font-size:12px;opacity:.85;margin-bottom:6px">Màn hình game đang là tiếng Anh; video có bình luận tiếng Việt nên nên đổi.</div>' : '') +
     '<div id="rec-dir" style="font-weight:400;font-size:12.5px;line-height:1.4"></div>' +
     (canFolder ? '<button id="rec-pick" style="' + B + 'background:#2a1a22;color:#ffd700;border:1px solid #ffd700">📁 CHỌN THƯ MỤC LƯU (raw_gameplay)</button>' : '') +
     (canRecord ? '<label style="display:flex;gap:6px;align-items:flex-start;font-weight:400;font-size:12.5px;margin-top:8px;cursor:pointer"><input type="checkbox" id="rec-self" checked style="margin-top:2px"> Chrome tự quay video và tiếng (không cần Snipping Tool)</label>' : '') +
@@ -3696,6 +3699,7 @@
   }
   function mount() { document.body.appendChild(panel); document.body.appendChild(dot); paint();
     document.getElementById('rec-go').onclick = start; dot.onclick = stop;
+    var vi = document.getElementById('rec-vi'); if (vi) vi.onclick = function () { try { localStorage.setItem('cybernova_lang', 'vi'); localStorage.setItem('cybernova_help_lang', 'vi'); } catch (e) {} location.reload(); };
     var pk = document.getElementById('rec-pick'); if (pk) pk.onclick = function () { dir && dirOk ? (dir = null, dirOk = false, chooseDir()) : chooseDir(); };
     var pb = document.getElementById('rec-prev'); if (pb) pb.onclick = function () {
       saveDiary(prev, 'tienlen_rec_' + stamp(new Date(prev.sync.wall)).replace(' ', '_') + '.events.json', true).then(function (ok) { note = ok ? 'Đã lưu nhật ký lần trước vào ' + dir.name + '.' : 'Đã tải nhật ký lần trước vào Downloads.'; paint(); }); }; }
