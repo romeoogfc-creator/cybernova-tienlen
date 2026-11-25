@@ -3732,7 +3732,7 @@
   }
   function stop() {
     if (rec && rec.state !== 'inactive') { rec.stop(); try { rec.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} return; }
-    if (synced) { saveDiary(log, diaryName(''), true).then(function (ok) { note = ok ? 'Đã lưu nhật ký vào ' + dir.name + '.' : 'Đã tải nhật ký vào Downloads.'; panel.style.display = 'block'; paint(); }); }
+    if (synced) { saveDiary(log, diaryName(''), true).then(function (ok) { note = ok ? 'Đã lưu nhật ký vào ' + dir.name + '.' : 'Đã tải nhật ký vào Downloads.'; panel.style.display = 'block'; paint(); stopTimer('✔ Đã lưu ' + mmss(now())); }); }
   }
   function finish() {
     recording = false;
@@ -3745,6 +3745,7 @@
         note = (ok && ok2) ? '✔ Đã lưu <b>' + vname + '</b> và nhật ký vào <b>' + dir.name + '</b>. Chạy run_longform_editor.bat để làm video.'
                            : '✔ Đã lưu video và nhật ký (thư mục Downloads). Chép cả hai vào raw_gameplay.';
         writer = null; chunks = []; dot.style.display = 'none'; panel.style.display = 'block'; paint();
+        stopTimer('✔ Đã lưu ' + mmss(now()));
       });
     });
   }
@@ -3760,9 +3761,16 @@
       log.events = [];                                  // the diary starts here
       log.sync = { kind: 'magenta-flash', seconds: 0.6, wall: Date.now(), wallISO: new Date().toISOString(), video: recording ? base : null };
       add({ e: 'sync', players: who(), stake: currentStake });
+      startTimer();
       setTimeout(function () { f.remove(); dot.style.display = 'block'; }, 600);
     });
   }
+  var title0 = document.title, timer = null;
+  function mmss(x) { x = Math.max(0, Math.floor(x)); var h = Math.floor(x / 3600), m = Math.floor(x % 3600 / 60), s = x % 60;
+    return (h ? h + ':' + pad(m) : m) + ':' + pad(s); }
+  function tick() { document.title = (recording ? '⏺ ' : '● ') + mmss(now()) + ' · ' + gamesDone + ' ván' + (recording ? ' · ĐANG QUAY' : ' · đang ghi nhật ký'); }
+  function startTimer() { if (timer) clearInterval(timer); tick(); timer = setInterval(tick, 1000); }
+  function stopTimer(msg) { if (timer) clearInterval(timer); timer = null; document.title = msg ? msg + ' · ' + title0 : title0; }
   function autoSave() {                               // after every game: into the folder (same file each time), else a download
     gamesDone++;
     if (dir && dirOk) saveDiary(log, diaryName(''), false);
