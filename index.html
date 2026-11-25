@@ -3626,31 +3626,129 @@
 (function () {
   if (!/[?&]rec=1\b/.test(location.search)) return;
   var KEY = 'cybernova_rec_log';
-  var log = { version: 1, page: 'single', created: new Date().toISOString(), sync: null, events: [] };
+  var prev = null;                                  // the diary of the last session (kept in the browser), so it can still be saved
+  try { prev = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (prev && !(prev.sync && prev.events && prev.events.length > 1)) prev = null;
+  var log = { version: 2, page: 'single', created: new Date().toISOString(), sync: null, events: [] };
   var t0 = performance.now();                       // replaced by the flash moment
-  var synced = false;
+  var synced = false, base = null, gamesDone = 0;
   function now() { return Math.round(performance.now() - t0) / 1000; }
   function card(c) { return c.rankStr + c.suitStr; }
   function cards(a) { return (a || []).map(card); }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(log)); } catch (e) {} paint(); }
   function add(ev) { ev.t = (ev.t != null) ? ev.t : now(); log.events.push(ev); save(); return ev; }
   function who() { return players.map(function (p) { return { name: p.name, bot: !!p.isBot, cash: p.cash, left: p.hand.length }; }); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function stamp(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()); }
 
-  // ---- the small control panel (hidden from the recording once the flash has happened) ----
+  // ---- the save folder (e.g. raw_gameplay), remembered by this browser on this PC ----
+  var dir = null, dirOk = false;
+  function idb(mode, fn) { return new Promise(function (ok) { try { var r = indexedDB.open('cnrec', 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore('h'); };
+    r.onsuccess = function () { var tx = r.result.transaction('h', mode), st = tx.objectStore('h'), q = fn(st); tx.oncomplete = function () { ok(q && q.result); }; tx.onerror = function () { ok(null); }; };
+    r.onerror = function () { ok(null); }; } catch (e) { ok(null); } }); }
+  var canFolder = typeof window.showDirectoryPicker === 'function';
+  var canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder);
+  function checkDir() { if (!dir) { dirOk = false; paint(); return Promise.resolve(false); }
+    return dir.queryPermission({ mode: 'readwrite' }).then(function (s) { dirOk = s === 'granted'; paint(); return dirOk; }, function () { dirOk = false; paint(); return false; }); }
+  function chooseDir() {
+    var go = (dir && !dirOk) ? dir.requestPermission({ mode: 'readwrite' }).then(function (s) { if (s !== 'granted') throw 0; return dir; })
+                             : window.showDirectoryPicker({ id: 'tienlen-raw', mode: 'readwrite', startIn: 'videos' });
+    return go.then(function (h) { dir = h; dirOk = true; idb('readwrite', function (st) { st.put(h, 'dir'); }); paint(); },
+                   function () { return checkDir(); });
+  }
+  if (canFolder) idb('readonly', function (st) { return st.get('dir'); }).then(function (h) { if (h) { dir = h; checkDir(); } });
+  function writeFile(name, data) {                 // into the chosen folder; returns false if that is not possible
+    if (!dir || !dirOk) return Promise.resolve(false);
+    return dir.getFileHandle(name, { create: true }).then(function (fh) { return fh.createWritable(); })
+      .then(function (w) { return w.write(data).then(function () { return w.close(); }); }).then(function () { return true; }, function () { return false; });
+  }
+  function download(name, blob) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+  function saveDiary(L, name, mayDownload) {
+    var data = JSON.stringify(L || log, null, 1);
+    return writeFile(name, data).then(function (ok) { if (!ok && mayDownload) download(name, new Blob([data], { type: 'application/json' })); return ok; });
+  }
+  function diaryName(tag) { return (base || ('tienlen_rec_' + stamp(new Date(log.sync ? log.sync.wall : Date.now())).replace(' ', '_'))) + (tag || '') + '.events.json'; }
+
+  // ---- the control panel (hidden from the recording while recording) ----
   var panel = document.createElement('div');
-  panel.id = 'rec-panel';
-  panel.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483000;background:rgba(10,4,8,.92);border:2px solid #ffd700;border-radius:12px;padding:10px 12px;font:600 14px system-ui,sans-serif;color:#fff;max-width:300px;box-shadow:0 6px 24px rgba(0,0,0,.6)';
+  panel.id = 'rec-panel'; panel.setAttribute('data-no-i18n', '1'); panel.setAttribute('translate', 'no');
+  panel.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483000;background:rgba(10,4,8,.94);border:2px solid #ffd700;border-radius:12px;padding:10px 12px;font:600 14px system-ui,sans-serif;color:#fff;width:310px;box-shadow:0 6px 24px rgba(0,0,0,.6)';
+  var B = 'border-radius:8px;padding:8px 10px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;';
   panel.innerHTML = '<div style="color:#ffd700;margin-bottom:6px">🎬 CHẾ ĐỘ QUAY VIDEO</div>' +
-    '<div id="rec-help" style="font-weight:400;font-size:12.5px;line-height:1.4;margin-bottom:8px">1. Bật phần mềm quay màn hình.<br>2. Bấm <b>BẮT ĐẦU</b> (màn hình nháy tím nửa giây).<br>3. Chơi bình thường. Xong thì bấm phím <b>F9</b> hoặc chấm đỏ góc dưới để tải nhật ký.</div>' +
-    '<button id="rec-go" style="background:#ffd700;color:#1a0408;border:0;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;width:100%">⏺ BẮT ĐẦU</button>' +
-    '<div id="rec-count" style="font-weight:400;font-size:12px;margin-top:6px;opacity:.8"></div>';
-  var dot = document.createElement('div');           // after the flash only a tiny dot stays (click it to download)
-  dot.title = 'Tải nhật ký quay video (F9)';
-  dot.style.cssText = 'position:fixed;left:4px;bottom:4px;width:9px;height:9px;border-radius:50%;background:#e0202e;opacity:.55;z-index:2147483000;cursor:pointer;display:none';
-  function paint() { var c = document.getElementById('rec-count'); if (c) c.textContent = log.events.length + ' sự kiện đã ghi' + (synced ? '' : ' (chưa đồng bộ)'); }
+    '<div id="rec-dir" style="font-weight:400;font-size:12.5px;line-height:1.4"></div>' +
+    (canFolder ? '<button id="rec-pick" style="' + B + 'background:#2a1a22;color:#ffd700;border:1px solid #ffd700">📁 CHỌN THƯ MỤC LƯU (raw_gameplay)</button>' : '') +
+    (canRecord ? '<label style="display:flex;gap:6px;align-items:flex-start;font-weight:400;font-size:12.5px;margin-top:8px;cursor:pointer"><input type="checkbox" id="rec-self" checked style="margin-top:2px"> Chrome tự quay video và tiếng (không cần Snipping Tool)</label>' : '') +
+    '<button id="rec-go" style="' + B + 'background:#ffd700;color:#1a0408;border:0">⏺ BẮT ĐẦU</button>' +
+    '<div id="rec-msg" style="font-weight:400;font-size:12px;margin-top:6px;opacity:.85;line-height:1.35"></div>' +
+    (prev ? '<button id="rec-prev" style="' + B + 'background:#2a1a22;color:#ffd700;border:1px solid #ffd700;font-weight:700">⬇ LƯU NHẬT KÝ LẦN TRƯỚC (' +
+      prev.events.filter(function (e) { return e.e === 'results'; }).length + ' ván, ' + new Date(prev.sync.wall).toLocaleString() + ')</button>' : '');
+  var dot = document.createElement('div');           // while recording only this tiny dot stays: click it to stop and save
+  dot.title = 'Dừng và lưu'; dot.setAttribute('data-no-i18n', '1');
+  dot.style.cssText = 'position:fixed;left:4px;bottom:4px;width:10px;height:10px;border-radius:50%;background:#e0202e;opacity:.6;z-index:2147483000;cursor:pointer;display:none';
+  var note = '';
+  function paint() {
+    var d = document.getElementById('rec-dir');
+    if (d) d.innerHTML = !canFolder ? 'Video và nhật ký sẽ được lưu vào thư mục <b>Downloads</b>.'
+      : (dir && dirOk ? 'Lưu vào thư mục: <b>' + dir.name + '</b> ✔' : (dir ? 'Thư mục <b>' + dir.name + '</b>: bấm nút dưới để cho phép lưu.' : 'Chưa chọn thư mục: bấm nút dưới và chọn <b>raw_gameplay</b>. (Bỏ qua thì lưu vào Downloads.)'));
+    var pk = document.getElementById('rec-pick'); if (pk) pk.textContent = dir && dirOk ? '📁 ĐỔI THƯ MỤC' : (dir ? '📁 CHO PHÉP LƯU VÀO ' + dir.name : '📁 CHỌN THƯ MỤC LƯU (raw_gameplay)');
+    var m = document.getElementById('rec-msg'); if (m) m.innerHTML = note || (log.events.length + ' sự kiện đã ghi');
+  }
   function mount() { document.body.appendChild(panel); document.body.appendChild(dot); paint();
-    document.getElementById('rec-go').onclick = flash; dot.onclick = download; }
+    document.getElementById('rec-go').onclick = start; dot.onclick = stop;
+    var pk = document.getElementById('rec-pick'); if (pk) pk.onclick = function () { dir && dirOk ? (dir = null, dirOk = false, chooseDir()) : chooseDir(); };
+    var pb = document.getElementById('rec-prev'); if (pb) pb.onclick = function () {
+      saveDiary(prev, 'tienlen_rec_' + stamp(new Date(prev.sync.wall)).replace(' ', '_') + '.events.json', true).then(function (ok) { note = ok ? 'Đã lưu nhật ký lần trước vào ' + dir.name + '.' : 'Đã tải nhật ký lần trước vào Downloads.'; paint(); }); }; }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+
+  // ---- recording the tab itself (Chrome / Edge) ----
+  var rec = null, writer = null, chunks = [], queue = Promise.resolve(), ext = 'webm', recording = false;
+  function pickType() {
+    var c = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+    for (var i = 0; i < c.length; i++) if (MediaRecorder.isTypeSupported(c[i])) return c[i];
+    return '';
+  }
+  function start() {
+    var self = document.getElementById('rec-self');
+    base = 'Recording ' + stamp(new Date());
+    if (!(self && self.checked)) { note = ''; flash(); return; }                    // the Snipping Tool records instead
+    navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30, displaySurface: 'browser' }, audio: true,
+      preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude', systemAudio: 'include' })
+    .then(function (stream) {
+      var type = pickType(); ext = type.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+      rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 8000000, audioBitsPerSecond: 160000 } : {});
+      stream.getVideoTracks()[0].addEventListener('ended', stop);                  // Chrome's own "Stop sharing" button
+      var open = (dir && dirOk) ? dir.getFileHandle(base + '.' + ext, { create: true }).then(function (fh) { return fh.createWritable(); }).catch(function () { return null; }) : Promise.resolve(null);
+      return open.then(function (w) {
+        writer = w; chunks = [];
+        rec.ondataavailable = function (e) { if (!e.data || !e.data.size) return;
+          if (writer) { var d = e.data; queue = queue.then(function () { return writer.write(d); }); } else chunks.push(e.data); };
+        rec.onstop = finish;
+        rec.start(1000); recording = true;
+        setTimeout(flash, 700);                                                    // the flash lands inside the video
+      });
+    })
+    .catch(function (e) { note = 'Không quay được (' + (e && e.name || 'lỗi') + '). Có thể bỏ dấu “Chrome tự quay” và dùng Snipping Tool.'; paint(); });
+  }
+  function stop() {
+    if (rec && rec.state !== 'inactive') { rec.stop(); try { rec.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} return; }
+    if (synced) { saveDiary(log, diaryName(''), true).then(function (ok) { note = ok ? 'Đã lưu nhật ký vào ' + dir.name + '.' : 'Đã tải nhật ký vào Downloads.'; panel.style.display = 'block'; paint(); }); }
+  }
+  function finish() {
+    recording = false;
+    var vname = base + '.' + ext;
+    var done = writer ? queue.then(function () { return writer.close(); }).then(function () { return true; }, function () { return false; })
+                      : Promise.resolve(false);
+    done.then(function (ok) {
+      if (!ok) download(vname, new Blob(chunks, { type: rec.mimeType || 'video/webm' }));
+      return saveDiary(log, diaryName(''), true).then(function (ok2) {
+        note = (ok && ok2) ? '✔ Đã lưu <b>' + vname + '</b> và nhật ký vào <b>' + dir.name + '</b>. Chạy run_longform_editor.bat để làm video.'
+                           : '✔ Đã lưu video và nhật ký (thư mục Downloads). Chép cả hai vào raw_gameplay.';
+        writer = null; chunks = []; dot.style.display = 'none'; panel.style.display = 'block'; paint();
+      });
+    });
+  }
+  window.addEventListener('beforeunload', function (e) { if (recording) { e.preventDefault(); e.returnValue = ''; } });
 
   function flash() {
     var f = document.createElement('div');
@@ -3658,21 +3756,21 @@
     panel.style.display = 'none';
     document.body.appendChild(f);
     requestAnimationFrame(function () {               // the clock starts on the first painted magenta frame
-      t0 = performance.now(); synced = true;
+      t0 = performance.now(); synced = true; gamesDone = 0;
       log.events = [];                                  // the diary starts here
-      log.sync = { kind: 'magenta-flash', seconds: 0.6, wall: Date.now(), wallISO: new Date().toISOString() };
+      log.sync = { kind: 'magenta-flash', seconds: 0.6, wall: Date.now(), wallISO: new Date().toISOString(), video: recording ? base : null };
       add({ e: 'sync', players: who(), stake: currentStake });
       setTimeout(function () { f.remove(); dot.style.display = 'block'; }, 600);
     });
   }
-  function download() {
-    var name = 'tienlen_rec_' + new Date(log.sync ? log.sync.wall : Date.now()).toISOString().replace(/[-:]/g, '').replace('T', '_').slice(0, 15) + '.events.json';
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(log, null, 1)], { type: 'application/json' }));
-    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  function autoSave() {                               // after every game: into the folder (same file each time), else a download
+    gamesDone++;
+    if (dir && dirOk) saveDiary(log, diaryName(''), false);
+    else if (!recording) saveDiary(log, diaryName('_game' + gamesDone), true);
   }
-  window.CNRec = { log: log, download: download, flash: flash };
-  document.addEventListener('keydown', function (e) { if (e.key === 'F9') { e.preventDefault(); download(); } });
+  window.CNRec = { log: log, save: function () { return saveDiary(log, diaryName(''), true); }, flash: flash, stop: stop,
+    useFolder: function (h) { dir = h; return checkDir(); } };
+  document.addEventListener('keydown', function (e) { if (e.key === 'F9') { e.preventDefault(); saveDiary(log, diaryName(''), true); } });
 
   // ---- hooks: each wraps a game function and writes down what really happened ----
   function wrap(name, fn) { var orig = window[name]; if (typeof orig !== 'function') return; window[name] = fn(orig); }
@@ -3723,6 +3821,7 @@
 
   wrap('endGame', function (orig) { return function () {
     var at = now(), r = orig.apply(this, arguments);
+    if (synced) setTimeout(autoSave, 2500);           // saved automatically after every game: no key to remember
     add({ t: at, e: 'results', instant: !!instantWinThisGame, players: players.map(function (p) {
       return { name: p.name, rank: p.rank, cong: !!p.isCongLocked, net: p.netPayout, cash: p.cash, left: cards(p.hand),
         why: (p.moneyLog || []).map(function (m) { return { amt: m.amt, why: m.why }; }) }; }) });
