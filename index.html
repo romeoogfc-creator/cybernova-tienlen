@@ -3688,7 +3688,9 @@
       prev.events.filter(function (e) { return e.e === 'results'; }).length + ' ván, ' + new Date(prev.sync.wall).toLocaleString() + ')</button>' : '');
   var dot = document.createElement('div');           // while recording only this tiny dot stays: click it to stop and save
   dot.title = 'Dừng và lưu'; dot.setAttribute('data-no-i18n', '1');
-  dot.style.cssText = 'position:fixed;left:4px;bottom:4px;width:10px;height:10px;border-radius:50%;background:#e0202e;opacity:.6;z-index:2147483000;cursor:pointer;display:none';
+  dot.style.cssText = 'position:fixed;left:4px;bottom:3px;z-index:2147483000;cursor:pointer;display:none;align-items:center;gap:5px;' +
+    'padding:2px 6px;border-radius:9px;background:rgba(0,0,0,.55);font:700 11px system-ui,sans-serif;color:#ffb3b8;white-space:nowrap;width:178px;height:16px;overflow:hidden;box-sizing:border-box';
+  dot.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:#e0202e;display:inline-block"></span><span id="rec-time">0:00</span>';
   var note = '';
   function paint() {
     var d = document.getElementById('rec-dir');
@@ -3766,13 +3768,18 @@
       log.sync = { kind: 'magenta-flash', seconds: 0.6, wall: Date.now(), wallISO: new Date().toISOString(), video: recording ? base : null };
       add({ e: 'sync', players: who(), stake: currentStake });
       startTimer();
-      setTimeout(function () { f.remove(); dot.style.display = 'block'; }, 600);
+      dot.style.display = 'flex'; tick(); log.sync.timerBox = dotBox();    // where the timer sits: the editor blends it out of the video
+      setTimeout(function () { f.remove(); }, 600);
     });
   }
   var title0 = document.title, timer = null;
   function mmss(x) { x = Math.max(0, Math.floor(x)); var h = Math.floor(x / 3600), m = Math.floor(x % 3600 / 60), s = x % 60;
     return (h ? h + ':' + pad(m) : m) + ':' + pad(s); }
-  function tick() { document.title = (recording ? '⏺ ' : '● ') + mmss(now()) + ' · ' + gamesDone + ' ván' + (recording ? ' · ĐANG QUAY' : ' · đang ghi nhật ký'); }
+  function dotBox() { var r = dot.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, vw: innerWidth, vh: innerHeight }; }
+  window.addEventListener('resize', function () { if (synced && dot.style.display !== 'none') add({ e: 'timerBox', box: dotBox() }); });
+  function tick() { var rt = document.getElementById('rec-time');
+    if (rt) rt.textContent = mmss(now()) + ' · ' + gamesDone + ' ván · bấm để dừng';
+    document.title = (recording ? '⏺ ' : '● ') + mmss(now()) + ' · ' + gamesDone + ' ván' + (recording ? ' · ĐANG QUAY' : ' · đang ghi nhật ký'); }
   function startTimer() { if (timer) clearInterval(timer); tick(); timer = setInterval(tick, 1000); }
   function stopTimer(msg) { if (timer) clearInterval(timer); timer = null; document.title = msg ? msg + ' · ' + title0 : title0; }
   function autoSave() {                               // after every game: into the folder (same file each time), else a download
